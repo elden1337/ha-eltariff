@@ -1,0 +1,26 @@
+refresh:
+  name: Refresh tariff data
+  description: Force the coordinator to re-fetch tariff data from the API.
+  target:
+    integration: eltariff
+
+get_schedule:
+  name: Get tariff schedule
+  description: Return the hour-by-hour power price schedule for a date range.
+  target:
+    integration: eltariff
+  fields:
+    start_date:
+      name: Start date
+      description: First day of the schedule (YYYY-MM-DD).
+      required: true
+      example: "2025-01-15"
+      selector:
+        date:
+    end_date:
+      name: End date
+      description: Last day of the schedule (YYYY-MM-DD), inclusive.
+      required: true
+      example: "2025-01-16"
+      selector:
+        date:

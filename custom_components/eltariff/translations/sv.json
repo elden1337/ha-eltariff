@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Anslut till elnätstaxe-API",
+        "data": {
+          "base_url": "API-bas-URL",
+          "bearer_token": "Bearer-token (valfritt)"
+        }
+      },
+      "tariff": {
+        "title": "Välj taxa",
+        "data": {
+          "tariff_id": "Taxa",
+          "vat_mode": "Momsläge"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunde inte ansluta till API:et",
+      "auth_error": "Autentisering misslyckades — kontrollera bearer-token",
+      "unknown": "Oväntat fel"
+    },
+    "abort": {
+      "already_configured": "Denna taxa är redan konfigurerad"
+    }
+  }
+}

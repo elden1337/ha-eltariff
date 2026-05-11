@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Grid Tariff API",
+        "data": {
+          "base_url": "API base URL",
+          "bearer_token": "Bearer token (optional)"
+        }
+      },
+      "tariff": {
+        "title": "Select tariff",
+        "data": {
+          "tariff_id": "Tariff",
+          "vat_mode": "VAT mode"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the API",
+      "auth_error": "Authentication failed — check bearer token",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This tariff is already configured"
+    }
+  }
+}
