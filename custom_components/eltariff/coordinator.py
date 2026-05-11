@@ -12,13 +12,11 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .api import (
     ActiveTariffSnapshot,
     ServerInfo,
-    TariffApiAuthError,
-    TariffApiClient,
-    TariffApiError,
     TariffCollection,
     next_transition_at,
     resolve_active_components,
 )
+from .api.client import TariffApiAuthError, TariffApiClient, TariffApiError
 from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,

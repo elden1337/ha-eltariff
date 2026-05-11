@@ -1,5 +1,4 @@
 """API package for the eltariff integration."""
-from .client import TariffApiAuthError, TariffApiClient, TariffApiError
 from .models import (
     ActiveTariffSnapshot,
     CalendarPattern,
@@ -31,9 +30,6 @@ __all__ = [
     "ScheduleSlot",
     "ServerInfo",
     "Tariff",
-    "TariffApiAuthError",
-    "TariffApiClient",
-    "TariffApiError",
     "TariffCollection",
     "ValidPeriod",
     "build_day_schedule",
