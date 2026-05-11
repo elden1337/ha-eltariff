@@ -3,11 +3,11 @@
   "name": "Eltariff (RI-SE Grid Tariff API)",
   "version": "0.1.0",
   "config_flow": true,
-  "documentation": "https://github.com/magnuselden/ha-eltariff",
-  "issue_tracker": "https://github.com/magnuselden/ha-eltariff/issues",
+  "documentation": "https://github.com/elden1337/ha-eltariff",
+  "issue_tracker": "https://github.com/elden1337/ha-eltariff/issues",
   "requirements": [],
   "dependencies": [],
-  "codeowners": ["@magnuselden"],
+  "codeowners": ["@elden1337"],
   "iot_class": "cloud_polling",
   "integration_type": "service"
 }
