@@ -2,17 +2,23 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect to Grid Tariff API",
+        "title": "Select DSO",
         "data": {
-          "base_url": "API base URL",
-          "bearer_token": "Bearer token (optional)"
+          "dso_key": "Grid operator",
+          "base_url": "Custom API base URL"
         }
       },
       "tariff": {
         "title": "Select tariff",
         "data": {
-          "tariff_id": "Tariff",
-          "vat_mode": "VAT mode"
+          "tariff_id": "Tariff"
+        }
+      },
+      "options": {
+        "title": "Options",
+        "data": {
+          "vat_mode": "VAT mode",
+          "bearer_token": "Bearer token (optional)"
         }
       },
       "options": {
@@ -32,6 +38,8 @@
     "error": {
       "cannot_connect": "Failed to connect to the API",
       "auth_error": "Authentication failed — check bearer token",
+      "invalid_url": "URL must not be empty for a custom endpoint",
+      "no_valid_tariffs": "No currently valid tariffs found at this endpoint",
       "unknown": "Unexpected error"
     },
     "abort": {
