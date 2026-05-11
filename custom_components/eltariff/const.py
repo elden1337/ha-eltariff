@@ -7,6 +7,22 @@ CONF_BASE_URL = "base_url"
 CONF_TARIFF_ID = "tariff_id"
 CONF_VAT_MODE = "vat_mode"
 CONF_BEARER_TOKEN = "bearer_token"
+CONF_DSO_KEY = "dso_key"
+
+KNOWN_DSOS: dict[str, dict[str, str]] = {
+    "goteborg_energi": {
+        "name": "Göteborg Energi Nät AB",
+        "base_url": "https://api.goteborgenergi.cloud/gridtariff/v0",
+    },
+    "tekniska_verken": {
+        "name": "Tekniska Verken",
+        "base_url": "https://api.tekniskaverken.net/subscription/public/v0",
+    },
+    "custom": {
+        "name": "Custom URL",
+        "base_url": "",
+    },
+}
 
 VAT_MODE_INC = "inc_vat"
 VAT_MODE_EX = "ex_vat"

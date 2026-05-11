@@ -1,7 +1,8 @@
 """Sensor entities for the eltariff integration."""
 from __future__ import annotations
 
-from datetime import datetime
+import zoneinfo
+from datetime import date, datetime
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -55,9 +56,11 @@ class _EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
         return self.coordinator.data
 
     def _common_attrs(self) -> dict:
+        from .api.schedule import build_day_schedule
+
         snap = self._data.snapshot
         t = snap.tariff
-        return {
+        attrs: dict = {
             "tariff_id": t.id,
             "tariff_name": t.name,
             "product": t.product,
@@ -70,6 +73,20 @@ class _EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
                 else None
             ),
         }
+        tz = zoneinfo.ZoneInfo(self.coordinator.data.info.timezone or "Europe/Stockholm")
+        tariff = self.coordinator.data.collection.get_tariff(self.coordinator.tariff_id)
+        if tariff is not None:
+            slots = build_day_schedule(tariff, self.coordinator.data.collection, date.today(), tz)
+            attrs["today_schedule"] = [
+                {
+                    "start": s.start.isoformat(),
+                    "end": s.end.isoformat(),
+                    "band": s.band_reference,
+                    "price_inc_vat": s.price_inc_vat,
+                }
+                for s in slots
+            ]
+        return attrs
 
 
 class ActivePowerPriceSensor(_EltariffSensorBase):
@@ -219,11 +236,10 @@ class FixedPriceAnnualSensor(_EltariffSensorBase):
         comps = self._data.snapshot.active_fixed_components
         if not comps:
             return None
-        total = sum(
+        return sum(
             c.price.price_inc_vat if self._vat_mode == VAT_MODE_INC else c.price.price_ex_vat
             for c in comps
         )
-        return total
 
     @property
     def native_unit_of_measurement(self) -> str:
