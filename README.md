@@ -60,7 +60,7 @@ automation:
           entity_id: switch.dishwasher
 ```
 
-### Pass today's schedule to peaqhvac or similar
+### Pass today's schedule to advanced calculations and other integrations
 
 The `today_schedule` attribute on any sensor (e.g. `sensor.eltariff_active_power_band`) can be read in a template or passed to an automation that controls climate equipment:
 
