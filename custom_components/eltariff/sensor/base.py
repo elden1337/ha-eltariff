@@ -29,29 +29,35 @@ class EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
     def _data(self) -> EltariffCoordinatorData:
         return self.coordinator.data
 
-    def _common_attrs(self) -> dict:
-        from ..api.schedule import build_day_schedule
-
-        snap = self._data.snapshot
-        t = snap.tariff
-        attrs: dict = {
-            "tariff_id": t.id,
-            "tariff_name": t.name,
-            "product": t.product,
-            "company_name": t.company_name,
-            "valid_from": str(t.valid_period.from_including),
-            "valid_to": str(t.valid_period.to_excluding),
+    def _last_updated_attr(self) -> dict:
+        return {
             "last_updated_source": (
                 self._data.info.tariff_data_last_updated.isoformat()
                 if self._data.info.tariff_data_last_updated
                 else None
-            ),
+            )
         }
-        tz = zoneinfo.ZoneInfo(self.coordinator.data.info.timezone or "Europe/Stockholm")
-        tariff = self.coordinator.data.collection.get_tariff(self.coordinator.tariff_id)
-        if tariff is not None:
-            slots = build_day_schedule(tariff, self.coordinator.data.collection, date.today(), tz)
-            attrs["today_schedule"] = [
+
+    def _tariff_meta_attrs(self) -> dict:
+        t = self._data.snapshot.tariff
+        return {
+            "tariff_id": t.id,
+            "tariff_name": t.name,
+            "valid_from": str(t.valid_period.from_including),
+            "valid_to": str(t.valid_period.to_excluding),
+            **self._last_updated_attr(),
+        }
+
+    def _today_schedule_attrs(self) -> dict:
+        from ..api.schedule import build_day_schedule
+
+        tz = zoneinfo.ZoneInfo(self._data.info.timezone or "Europe/Stockholm")
+        tariff = self._data.collection.get_tariff(self.coordinator.tariff_id)
+        if tariff is None:
+            return {}
+        slots = build_day_schedule(tariff, self._data.collection, date.today(), tz)
+        return {
+            "today_schedule": [
                 {
                     "start": s.start.isoformat(),
                     "end": s.end.isoformat(),
@@ -60,4 +66,4 @@ class EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
                 }
                 for s in slots
             ]
-        return attrs
+        }

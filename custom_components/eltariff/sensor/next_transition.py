@@ -24,4 +24,4 @@ class NextTransitionSensor(EltariffSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return self._common_attrs()
+        return {**self._tariff_meta_attrs(), **self._today_schedule_attrs()}

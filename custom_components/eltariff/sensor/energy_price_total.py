@@ -33,4 +33,17 @@ class EnergyPriceTotalSensor(EltariffSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return self._common_attrs()
+        comps = self._data.snapshot.active_energy_components
+        return {
+            **self._last_updated_attr(),
+            **self._today_schedule_attrs(),
+            "components": [
+                {
+                    "reference": c.reference,
+                    "price_inc_vat": c.price.price_inc_vat,
+                    "price_ex_vat": c.price.price_ex_vat,
+                    "currency": c.price.currency,
+                }
+                for c in comps
+            ],
+        }

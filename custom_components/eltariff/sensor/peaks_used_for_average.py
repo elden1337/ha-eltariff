@@ -26,4 +26,11 @@ class PeaksUsedForAverageSensor(EltariffSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return self._common_attrs()
+        attrs: dict = {"parse_warnings": self._data.snapshot.parse_warnings}
+        pc = self._data.snapshot.active_power_component
+        if pc and pc.peak_identification_settings:
+            s = pc.peak_identification_settings
+            attrs["peak_function"] = s.peak_function
+            attrs["peak_identification_period"] = s.peak_identification_period
+            attrs["peak_duration"] = s.peak_duration
+        return attrs

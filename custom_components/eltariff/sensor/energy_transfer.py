@@ -34,4 +34,4 @@ class EnergyTransferSensor(EltariffSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict:
-        return self._common_attrs()
+        return {**self._last_updated_attr(), **self._today_schedule_attrs()}

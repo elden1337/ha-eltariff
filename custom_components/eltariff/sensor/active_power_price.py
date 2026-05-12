@@ -32,7 +32,7 @@ class ActivePowerPriceSensor(EltariffSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict:
-        attrs = self._common_attrs()
+        attrs = self._last_updated_attr()
         pc = self._data.snapshot.active_power_component
         if pc:
             attrs["reference"] = pc.reference
