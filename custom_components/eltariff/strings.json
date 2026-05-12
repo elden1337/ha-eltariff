@@ -14,6 +14,19 @@
           "tariff_id": "Tariff",
           "vat_mode": "VAT mode"
         }
+      },
+      "options": {
+        "title": "Options",
+        "data": {
+          "vat_mode": "VAT mode",
+          "bearer_token": "Bearer token (optional)",
+          "power_sensor_entity_id": "Power meter sensor (optional)",
+          "power_sensor_unit": "Power unit"
+        },
+        "data_description": {
+          "power_sensor_entity_id": "A sensor reporting real-time power consumption. Used to calculate actual peak and billing-period cost.",
+          "power_sensor_unit": "Unit reported by the selected sensor."
+        }
       }
     },
     "error": {
@@ -23,6 +36,23 @@
     },
     "abort": {
       "already_configured": "This tariff is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "vat_mode": "VAT mode",
+          "bearer_token": "Bearer token (optional)",
+          "power_sensor_entity_id": "Power meter sensor (optional)",
+          "power_sensor_unit": "Power unit"
+        },
+        "data_description": {
+          "power_sensor_entity_id": "A sensor reporting real-time power consumption. Used to calculate actual peak and billing-period cost.",
+          "power_sensor_unit": "Unit reported by the selected sensor."
+        }
+      }
     }
   }
 }

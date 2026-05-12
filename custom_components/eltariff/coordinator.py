@@ -69,7 +69,10 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         return TariffApiClient(
             base_url=self._config_entry.data[CONF_BASE_URL],
             session=session,
-            bearer_token=self._config_entry.data.get(CONF_BEARER_TOKEN),
+            bearer_token=(
+                self._config_entry.options.get(CONF_BEARER_TOKEN)
+                or self._config_entry.data.get(CONF_BEARER_TOKEN)
+            ),
         )
 
     def _next_randomized_poll(self) -> datetime:

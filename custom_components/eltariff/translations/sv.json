@@ -14,6 +14,19 @@
           "tariff_id": "Taxa",
           "vat_mode": "Momsläge"
         }
+      },
+      "options": {
+        "title": "Inställningar",
+        "data": {
+          "vat_mode": "Momsläge",
+          "bearer_token": "Bearer-token (valfritt)",
+          "power_sensor_entity_id": "Effektmätarsensor (valfritt)",
+          "power_sensor_unit": "Effektenhet"
+        },
+        "data_description": {
+          "power_sensor_entity_id": "En sensor som rapporterar realtidseffekten. Används för att beräkna faktisk toppbelastning och kostnad under faktureringsperioden.",
+          "power_sensor_unit": "Enhet som används av den valda sensorn."
+        }
       }
     },
     "error": {
@@ -23,6 +36,23 @@
     },
     "abort": {
       "already_configured": "Denna taxa är redan konfigurerad"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Inställningar",
+        "data": {
+          "vat_mode": "Momsläge",
+          "bearer_token": "Bearer-token (valfritt)",
+          "power_sensor_entity_id": "Effektmätarsensor (valfritt)",
+          "power_sensor_unit": "Effektenhet"
+        },
+        "data_description": {
+          "power_sensor_entity_id": "En sensor som rapporterar realtidseffekten. Används för att beräkna faktisk toppbelastning och kostnad under faktureringsperioden.",
+          "power_sensor_unit": "Enhet som används av den valda sensorn."
+        }
+      }
     }
   }
 }

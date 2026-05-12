@@ -5,7 +5,7 @@ import logging
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
-from .const import DOMAIN
+from .const import CONF_POWER_SENSOR, CONF_POWER_SENSOR_UNIT, DOMAIN, POWER_UNIT_W
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -16,7 +16,23 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "binary_sensor"]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+def _power_entity_id(entry: "ConfigEntry") -> str | None:
+    return (
+        entry.options.get(CONF_POWER_SENSOR)
+        or entry.data.get(CONF_POWER_SENSOR)
+        or None
+    )
+
+
+def _power_unit(entry: "ConfigEntry") -> str:
+    return (
+        entry.options.get(CONF_POWER_SENSOR_UNIT)
+        or entry.data.get(CONF_POWER_SENSOR_UNIT)
+        or POWER_UNIT_W
+    )
+
+
+async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
     from .coordinator import EltariffCoordinator
 
     coordinator = EltariffCoordinator(hass, entry)
@@ -25,6 +41,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Set up power meter tracker if the user has configured one.
+    power_id = _power_entity_id(entry)
+    if power_id:
+        from .power_tracker import PowerTracker
+        tracker = PowerTracker(hass, power_id, _power_unit(entry))
+        hass.data[DOMAIN][f"{entry.entry_id}_tracker"] = tracker
+        entry.async_on_unload(tracker.async_setup())
+
+    # Reload this entry whenever options are saved so the tracker and VAT mode
+    # are updated without requiring a manual restart.
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     # Register domain services once — guarded so multiple entries don't collide.
     if not hass.services.has_service(DOMAIN, "refresh"):
@@ -89,8 +117,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def _async_options_updated(hass: "HomeAssistant", entry: "ConfigEntry") -> None:
+    """Reload the entry so VAT mode, bearer token and power tracker are updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        hass.data[DOMAIN].pop(f"{entry.entry_id}_tracker", None)
     return unloaded

@@ -23,7 +23,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: EltariffCoordinator = hass.data[DOMAIN][entry.entry_id]
-    vat_mode = entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
+    vat_mode = entry.options.get(CONF_VAT_MODE) or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
 
     async_add_entities([
         ActivePowerPriceSensor(coordinator, entry, vat_mode),

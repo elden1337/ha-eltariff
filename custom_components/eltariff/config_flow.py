@@ -6,7 +6,9 @@ from datetime import UTC, datetime
 from typing import Any
 
 import voluptuous as vol
+from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api.client import TariffApiAuthError, TariffApiClient, TariffApiError
@@ -14,11 +16,15 @@ from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,
     CONF_DSO_KEY,
+    CONF_POWER_SENSOR,
+    CONF_POWER_SENSOR_UNIT,
     CONF_TARIFF_ID,
     CONF_TARIFF_NAME,
     CONF_VAT_MODE,
     DOMAIN,
     KNOWN_DSOS,
+    POWER_UNIT_W,
+    POWER_UNITS,
     VAT_MODE_INC,
     VAT_MODES,
 )
@@ -32,6 +38,10 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._form_data: dict[str, Any] = {}
         self._available_tariffs: list[dict] = []
+
+    @staticmethod
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> "EltariffOptionsFlow":
+        return EltariffOptionsFlow(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -149,6 +159,8 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_TARIFF_NAME: tariff_name,
                     CONF_VAT_MODE: user_input[CONF_VAT_MODE],
                     CONF_BEARER_TOKEN: user_input.get(CONF_BEARER_TOKEN) or None,
+                    CONF_POWER_SENSOR: user_input.get(CONF_POWER_SENSOR) or None,
+                    CONF_POWER_SENSOR_UNIT: user_input.get(CONF_POWER_SENSOR_UNIT, POWER_UNIT_W),
                 },
             )
 
@@ -157,6 +169,84 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({
                 vol.Required(CONF_VAT_MODE, default=VAT_MODE_INC): vol.In(VAT_MODES),
                 vol.Optional(CONF_BEARER_TOKEN): str,
+                vol.Optional(CONF_POWER_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(CONF_POWER_SENSOR_UNIT, default=POWER_UNIT_W): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=POWER_UNITS,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                ),
             }),
+            errors={},
+        )
+
+
+class EltariffOptionsFlow(config_entries.OptionsFlow):
+    """Options flow — allows reconfiguring VAT mode, bearer token, and power meter sensor."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(
+                title="",
+                data={
+                    CONF_VAT_MODE: user_input[CONF_VAT_MODE],
+                    CONF_BEARER_TOKEN: user_input.get(CONF_BEARER_TOKEN) or None,
+                    CONF_POWER_SENSOR: user_input.get(CONF_POWER_SENSOR) or None,
+                    CONF_POWER_SENSOR_UNIT: user_input.get(CONF_POWER_SENSOR_UNIT, POWER_UNIT_W),
+                },
+            )
+
+        current_vat = (
+            self._entry.options.get(CONF_VAT_MODE)
+            or self._entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
+        )
+        current_token = (
+            self._entry.options.get(CONF_BEARER_TOKEN)
+            or self._entry.data.get(CONF_BEARER_TOKEN)
+            or ""
+        )
+        current_entity = (
+            self._entry.options.get(CONF_POWER_SENSOR)
+            or self._entry.data.get(CONF_POWER_SENSOR)
+            or ""
+        )
+        current_unit = (
+            self._entry.options.get(CONF_POWER_SENSOR_UNIT)
+            or self._entry.data.get(CONF_POWER_SENSOR_UNIT)
+            or POWER_UNIT_W
+        )
+
+        schema = vol.Schema({
+            vol.Required(CONF_VAT_MODE): vol.In(VAT_MODES),
+            vol.Optional(CONF_BEARER_TOKEN): str,
+            vol.Optional(CONF_POWER_SENSOR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Optional(CONF_POWER_SENSOR_UNIT): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=POWER_UNITS,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+        })
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                schema,
+                {
+                    CONF_VAT_MODE: current_vat,
+                    CONF_BEARER_TOKEN: current_token,
+                    CONF_POWER_SENSOR: current_entity,
+                    CONF_POWER_SENSOR_UNIT: current_unit,
+                },
+            ),
             errors={},
         )
