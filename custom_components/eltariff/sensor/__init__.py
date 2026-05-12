@@ -37,11 +37,23 @@ async def async_setup_entry(
         NextTransitionSensor(coordinator, entry),
     ]
 
-    # Add the running cost sensor if an energy sensor (and thus CostService) is configured.
+    # Add cost-service sensors if an energy sensor (and thus CostService) is configured.
     cost_service = hass.data[DOMAIN].get(f"{entry.entry_id}_cost_service")
     if cost_service is not None:
+        from .charged_peak import ChargedPeakSensor
+        from .observed_peak import ObservedPeakSensor
+        from .peak_cost import PeakCostSensor
         from .running_cost import RunningCostSensor
+        from .tax_cost import TaxCostSensor
+        from .transmission_cost import TransmissionCostSensor
 
-        entities.append(RunningCostSensor(coordinator, entry, cost_service, vat_mode))
+        entities.extend([
+            RunningCostSensor(coordinator, entry, cost_service, vat_mode),
+            TaxCostSensor(coordinator, entry, cost_service, vat_mode),
+            TransmissionCostSensor(coordinator, entry, cost_service, vat_mode),
+            PeakCostSensor(coordinator, entry, cost_service, vat_mode),
+            ChargedPeakSensor(coordinator, entry, cost_service, vat_mode),
+            ObservedPeakSensor(coordinator, entry, cost_service, vat_mode),
+        ])
 
     async_add_entities(entities)

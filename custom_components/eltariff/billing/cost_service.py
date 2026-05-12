@@ -200,6 +200,7 @@ class CostService:
             fixed_cost=fixed_cost,
             observed_peak_kwh=tracker.observed_peak if tracker else 0.0,
             charged_peak_kwh=tracker.charged_peak if tracker else 0.0,
+            peak_duration_hours=self._peak_duration_hours(),
             stored_peaks=tracker.peaks if tracker else [],
             total_energy_kwh=self._total_energy_kwh,
             billing_period_start=self._billing_period_start,
@@ -360,6 +361,11 @@ class CostService:
         else:
             divisor = 12.0
         return annual_total / divisor
+
+    def _peak_duration_hours(self) -> float:
+        d = self._peak_duration
+        hours = d.years * 8766.0 + d.months * 730.5 + d.days * 24.0 + d.hours + d.minutes / 60.0
+        return max(hours, 1.0 / 60.0)
 
     def _get_currency(self, snapshot: ActiveTariffSnapshot) -> str:
         """Best-effort currency from the snapshot."""

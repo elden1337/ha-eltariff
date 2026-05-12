@@ -26,7 +26,7 @@ class RunningCostSensor(CoordinatorEntity[EltariffCoordinator], RestoreEntity, S
     """HA sensor whose state is the running cost for the billing period."""
 
     _attr_has_entity_name = True
-    _attr_name = "Running cost"
+    _attr_name = "Total running cost"
     _attr_icon = "mdi:cash-clock"
     _attr_state_class = SensorStateClass.TOTAL
     _unrecorded_attributes = frozenset({"stored_peaks", "cost_service_state"})
@@ -104,8 +104,6 @@ class RunningCostSensor(CoordinatorEntity[EltariffCoordinator], RestoreEntity, S
             "transmission_cost": round(bd.transmission_cost, 4),
             "tax_cost": round(bd.tax_cost, 4),
             "fixed_cost": round(bd.fixed_cost, 4),
-            "observed_peak_kwh": round(bd.observed_peak_kwh, 4),
-            "charged_peak_kwh": round(bd.charged_peak_kwh, 4),
             "total_energy_kwh": round(bd.total_energy_kwh, 4),
             "billing_period_start": (
                 bd.billing_period_start.isoformat() if bd.billing_period_start else None
@@ -113,8 +111,5 @@ class RunningCostSensor(CoordinatorEntity[EltariffCoordinator], RestoreEntity, S
             "billing_period_end": (
                 bd.billing_period_end.isoformat() if bd.billing_period_end else None
             ),
-            "stored_peaks": [
-                {"dt": p.dt.isoformat(), "kwh": round(p.value, 4)} for p in bd.stored_peaks
-            ],
             "cost_service_state": self._cost_service.save_state(),
         }
