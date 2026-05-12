@@ -12,7 +12,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import (
-    ActiveTariffSnapshot,
     ServerInfo,
     TariffCollection,
     next_transition_at,

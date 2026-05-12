@@ -35,7 +35,6 @@ from custom_components.eltariff.api.schedule import (
     resolve_active_components,
 )
 
-
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
 

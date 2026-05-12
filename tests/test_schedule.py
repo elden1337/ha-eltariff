@@ -1,8 +1,6 @@
 """Tests for schedule resolution logic."""
 
-from datetime import date, datetime, time, timezone
-
-import pytest
+from datetime import UTC, date, datetime, time
 
 from custom_components.eltariff.api.models import (
     ActivePeriod,
@@ -141,27 +139,27 @@ class TestWeekdayHighLow:
         return [c.reference for c in snap.active_power_components]
 
     def test_weekday_morning_rush(self) -> None:
-        dt = datetime(2025, 1, 6, 9, 0, tzinfo=timezone.utc)  # Monday 09:00
+        dt = datetime(2025, 1, 6, 9, 0, tzinfo=UTC)  # Monday 09:00
         assert self._resolve(dt) == ["winter_high"]
 
     def test_weekday_night(self) -> None:
-        dt = datetime(2025, 1, 6, 2, 0, tzinfo=timezone.utc)  # Monday 02:00
+        dt = datetime(2025, 1, 6, 2, 0, tzinfo=UTC)  # Monday 02:00
         assert self._resolve(dt) == ["winter_low_weekday"]
 
     def test_weekday_evening_after_peak(self) -> None:
-        dt = datetime(2025, 1, 6, 21, 0, tzinfo=timezone.utc)  # Monday 21:00
+        dt = datetime(2025, 1, 6, 21, 0, tzinfo=UTC)  # Monday 21:00
         assert self._resolve(dt) == ["winter_low_weekday"]
 
     def test_weekend_all_day(self) -> None:
-        dt = datetime(2025, 1, 4, 14, 0, tzinfo=timezone.utc)  # Saturday 14:00
+        dt = datetime(2025, 1, 4, 14, 0, tzinfo=UTC)  # Saturday 14:00
         assert self._resolve(dt) == ["winter_low_weekend"]
 
     def test_exactly_at_band_start(self) -> None:
-        dt = datetime(2025, 1, 6, 7, 0, tzinfo=timezone.utc)  # Monday 07:00 sharp
+        dt = datetime(2025, 1, 6, 7, 0, tzinfo=UTC)  # Monday 07:00 sharp
         assert self._resolve(dt) == ["winter_high"]
 
     def test_exactly_at_band_end_exclusive(self) -> None:
-        dt = datetime(2025, 1, 6, 20, 0, tzinfo=timezone.utc)  # Monday 20:00 = outside high
+        dt = datetime(2025, 1, 6, 20, 0, tzinfo=UTC)  # Monday 20:00 = outside high
         assert self._resolve(dt) == ["winter_low_weekday"]
 
 
@@ -196,7 +194,7 @@ class TestHolidayExclusion:
         )
         collection = _make_collection([weekday_pat, holiday_pat], tariff)
 
-        dt = datetime(2025, 1, 6, 10, 0, tzinfo=timezone.utc)
+        dt = datetime(2025, 1, 6, 10, 0, tzinfo=UTC)
         snap = resolve_active_components(tariff, collection, dt)
         refs = [c.reference for c in snap.active_power_components]
         assert "high" not in refs

@@ -25,7 +25,6 @@ from custom_components.eltariff.api.models import (
     ValidPeriod,
 )
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 

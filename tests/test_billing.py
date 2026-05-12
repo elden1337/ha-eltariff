@@ -7,10 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.eltariff.billing.iso_duration import parse_iso_duration
-from custom_components.eltariff.billing.models import PeakRecord
-from custom_components.eltariff.billing.peak_tracker import PeakTracker
 from custom_components.eltariff.billing.cost_service import CostService
+from custom_components.eltariff.billing.iso_duration import parse_iso_duration
+from custom_components.eltariff.billing.peak_tracker import PeakTracker
 
 
 def _dt(day: int, hour: int = 12) -> datetime:
