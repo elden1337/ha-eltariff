@@ -68,6 +68,7 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         tariff_name = self._config_entry.data.get(CONF_TARIFF_NAME)
         if tariff_name:
             return tariff_name
+        # Backwards compatibility for existing entries created before tariff_name was stored.
         if " — " in self._config_entry.title:
             return self._config_entry.title.split(" — ", 1)[1].strip()
         return None
@@ -121,7 +122,8 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
 
             _LOGGER.warning(
                 (
-                    "Configured tariff id %s was not found; auto-switching to %s (%s)"
+                    "Configured tariff id %s was not found; auto-switched to %s (%s) "
+                    "and continuing updates"
                 ),
                 self.tariff_id,
                 tariff.id,
