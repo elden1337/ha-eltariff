@@ -18,7 +18,6 @@ from custom_components.eltariff.api.models import (
     CalendarPatternReferences,
     CalendarPatternType,
     ComponentType,
-    PeakIdentificationSettings,
     Price,
     PriceComponent,
     PriceGroup,
