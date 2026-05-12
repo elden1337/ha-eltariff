@@ -37,8 +37,9 @@ class CostSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.title,
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_cost")},
+            name=f"{self._entry.title} Cost",
+            via_device=(DOMAIN, self._entry.entry_id),
         )
 
     def _get_breakdown(self) -> CostBreakdown | None:

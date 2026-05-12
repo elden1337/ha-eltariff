@@ -51,8 +51,9 @@ class RunningCostSensor(CoordinatorEntity[EltariffCoordinator], RestoreEntity, S
         from homeassistant.helpers.entity import DeviceInfo
 
         return DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.title,
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_cost")},
+            name=f"{self._entry.title} Cost",
+            via_device=(DOMAIN, self._entry.entry_id),
         )
 
     async def async_added_to_hass(self) -> None:
