@@ -122,7 +122,8 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
 
             _LOGGER.warning(
                 (
-                    "Configured tariff id %s was not found; auto-switched to %s (%s) "
+                    "Configured tariff id %s is no longer available (possibly expired); "
+                    "auto-switched to %s (%s) "
                     "and continuing updates"
                 ),
                 self.tariff_id,

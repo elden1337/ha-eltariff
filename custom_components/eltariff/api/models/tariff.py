@@ -50,7 +50,11 @@ class TariffCollection:
         return next((t for t in self.tariffs if t.id == tariff_id), None)
 
     def find_tariff_by_name(self, name: str, at: datetime | None = None) -> Tariff | None:
-        """Find tariff by stable display name, preferring the currently active/latest version."""
+        """Find tariff by stable display name.
+
+        If *at* is provided, active matches are preferred. When several active
+        matches exist, the tariff with the latest ``from_including`` is chosen.
+        """
         candidates = [t for t in self.tariffs if t.name == name]
         if not candidates:
             return None
