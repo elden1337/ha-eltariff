@@ -8,3 +8,4 @@ class ComponentType(StrEnum):
     FIXED = "fixed"
     PEAK = "peak"
     ENERGY = "energy"
+    PUBLIC = "public"
