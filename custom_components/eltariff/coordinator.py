@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import UTC, datetime, timedelta
 
 from homeassistant.core import HomeAssistant
@@ -22,6 +23,8 @@ from .const import (
     CONF_TARIFF_ID,
     CONF_TARIFF_NAME,
     DOMAIN,
+    INFO_POLL_BASE_SECONDS,
+    INFO_POLL_JITTER_SECONDS,
     SNAPSHOT_REFRESH_INTERVAL_SECONDS,
 )
 from .coordinator_data import EltariffCoordinatorData
@@ -43,6 +46,9 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         self._client: TariffApiClient | None = None
         self._cached_collection: TariffCollection | None = None
         self._cached_last_updated: datetime | None = None
+        self._cached_info: ServerInfo | None = None
+        # None means: poll immediately on first run.
+        self._next_info_poll: datetime | None = None
 
     @property
     def tariff_id(self) -> str:
@@ -66,31 +72,50 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             bearer_token=self._config_entry.data.get(CONF_BEARER_TOKEN),
         )
 
+    def _next_randomized_poll(self) -> datetime:
+        """Return a future timestamp for the next /info poll, with random jitter."""
+        jitter = random.uniform(-INFO_POLL_JITTER_SECONDS, INFO_POLL_JITTER_SECONDS)
+        delta = timedelta(seconds=INFO_POLL_BASE_SECONDS + jitter)
+        next_poll = datetime.now(tz=UTC) + delta
+        _LOGGER.debug("Next /info poll scheduled in %.0f s (at %s)", delta.total_seconds(), next_poll.isoformat())
+        return next_poll
+
     async def _async_update_data(self) -> EltariffCoordinatorData:
         if self._client is None:
             self._client = self._build_client()
 
-        try:
-            info = await self._client.get_info()
-        except TariffApiAuthError as exc:
-            raise UpdateFailed(f"Authentication error: {exc}") from exc
-        except TariffApiError as exc:
-            raise UpdateFailed(f"API error fetching /info: {exc}") from exc
+        now = datetime.now(tz=UTC)
 
-        if (
-            self._cached_collection is None
-            or info.tariff_data_last_updated != self._cached_last_updated
-        ):
-            _LOGGER.debug(
-                "Tariff data changed (was %s, now %s) — fetching full collection",
-                self._cached_last_updated,
-                info.tariff_data_last_updated,
-            )
+        if self._next_info_poll is None or now >= self._next_info_poll:
             try:
-                self._cached_collection = await self._client.get_tariffs()
-                self._cached_last_updated = info.tariff_data_last_updated
+                info = await self._client.get_info()
+            except TariffApiAuthError as exc:
+                raise UpdateFailed(f"Authentication error: {exc}") from exc
             except TariffApiError as exc:
-                raise UpdateFailed(f"API error fetching /tariffs: {exc}") from exc
+                raise UpdateFailed(f"API error fetching /info: {exc}") from exc
+
+            self._cached_info = info
+            self._next_info_poll = self._next_randomized_poll()
+
+            if (
+                self._cached_collection is None
+                or info.tariff_data_last_updated != self._cached_last_updated
+            ):
+                _LOGGER.debug(
+                    "Tariff data changed (was %s, now %s) — fetching full collection",
+                    self._cached_last_updated,
+                    info.tariff_data_last_updated,
+                )
+                try:
+                    self._cached_collection = await self._client.get_tariffs()
+                    self._cached_last_updated = info.tariff_data_last_updated
+                except TariffApiError as exc:
+                    raise UpdateFailed(f"API error fetching /tariffs: {exc}") from exc
+        else:
+            _LOGGER.debug(
+                "Skipping /info poll — next poll at %s", self._next_info_poll.isoformat()
+            )
+            info = self._cached_info  # type: ignore[assignment]
 
         now = datetime.now(tz=UTC)
         collection = self._cached_collection
