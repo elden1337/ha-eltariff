@@ -1,0 +1,8 @@
+{
+  "name": "Eltariff API",
+  "homeassistant": "2026.5.1",
+  "country": ["SE"],
+  "zip_release": true,
+  "filename": "eltariff_api.zip",
+  "render_readme": true
+}
