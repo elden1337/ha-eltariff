@@ -12,13 +12,18 @@ class PeakRecord:
 
     dt: datetime
     value: float  # kWh consumed during the peak_duration window
+    component_id: str = ""  # power component active when the peak was recorded
 
     def to_dict(self) -> dict:
-        return {"dt": self.dt.isoformat(), "value": self.value}
+        return {"dt": self.dt.isoformat(), "value": self.value, "component_id": self.component_id}
 
     @classmethod
     def from_dict(cls, d: dict) -> PeakRecord:
-        return cls(dt=datetime.fromisoformat(d["dt"]), value=float(d["value"]))
+        return cls(
+            dt=datetime.fromisoformat(d["dt"]),
+            value=float(d["value"]),
+            component_id=d.get("component_id", ""),
+        )
 
 
 @dataclass

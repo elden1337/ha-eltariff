@@ -3,7 +3,7 @@
 The service is fed energy-sensor readings (cumulative kWh) and the current
 tariff snapshot from the coordinator.  It maintains:
 
-* Peak tracking via :class:`PeakTracker`.
+* Peak tracking via :class:`PeakTracker` (one per power component).
 * Incremental transmission and tax cost accumulation.
 * A billing-period clock that resets everything on period boundaries.
 """
@@ -34,6 +34,10 @@ _DEFAULT_BILLING_PERIOD = parse_iso_duration("P1M")
 _DEFAULT_PEAK_DURATION = parse_iso_duration("PT1H")
 _DEFAULT_IDENTIFICATION_PERIOD = parse_iso_duration("P1D")
 
+# Key used when the active power component has no string id (e.g. in older
+# tests that use plain MagicMock without setting pc.id).
+_GLOBAL_KEY = "__global__"
+
 
 class CostService:
     """Stateful cost accumulator for a single tariff entry.
@@ -51,7 +55,8 @@ class CostService:
         self._number_of_peaks: int = 1
         self._peak_function: str = "average"
 
-        self._peak_tracker: PeakTracker | None = None
+        # One PeakTracker per power-component id.  Keyed by _component_key().
+        self._peak_trackers: dict[str, PeakTracker] = {}
 
         # Billing period state
         self._billing_period_start: datetime | None = None
@@ -61,6 +66,7 @@ class CostService:
         self._current_window_start: datetime | None = None
         self._current_window_start_reading: float | None = None
         self._current_window_peak: float = 0.0
+        self._current_window_component_id: str | None = None
 
         # Running totals
         self._prev_reading: float | None = None
@@ -70,11 +76,15 @@ class CostService:
 
         self._configured = False
 
+    # ------------------------------------------------------------------
+    # Configuration
+    # ------------------------------------------------------------------
+
     def configure_from_snapshot(self, snapshot: ActiveTariffSnapshot) -> None:
         """(Re-)configure durations and peak settings from the live snapshot.
 
         Called each coordinator cycle so the service always uses current data.
-        Only rebuilds the PeakTracker on the first call or when settings change.
+        Only rebuilds the PeakTrackers on the first call or when settings change.
         """
         tariff = snapshot.tariff
         billing_str = tariff.billing_period or "P1M"
@@ -107,17 +117,32 @@ class CostService:
         self._peak_function = peak_fn
 
         if needs_rebuild:
-            old_peaks = self._peak_tracker.serialise() if self._peak_tracker else []
-            self._peak_tracker = PeakTracker(
-                identification_period=self._id_period,
-                number_of_peaks=self._number_of_peaks,
-                peak_function=self._peak_function,
-            )
-            if old_peaks:
-                self._peak_tracker.restore(old_peaks)
-            elif self._deferred_peaks:
-                self._peak_tracker.restore(self._deferred_peaks)
+            # Rebuild every existing per-component tracker with new settings,
+            # preserving the peaks they hold.
+            new_trackers: dict[str, PeakTracker] = {}
+            for cid, old_tracker in self._peak_trackers.items():
+                new_tracker = PeakTracker(
+                    identification_period=self._id_period,
+                    number_of_peaks=self._number_of_peaks,
+                    peak_function=self._peak_function,
+                )
+                old_peaks = old_tracker.serialise()
+                if old_peaks:
+                    new_tracker.restore(old_peaks)
+                new_trackers[cid] = new_tracker
+            self._peak_trackers = new_trackers
+
+            if not self._peak_trackers and self._deferred_peaks:
+                # Restore deferred peaks grouped by component_id.
+                by_comp: dict[str, list[PeakRecord]] = {}
+                for record in self._deferred_peaks:
+                    key = record.component_id or _GLOBAL_KEY
+                    by_comp.setdefault(key, []).append(record)
+                for cid, records in by_comp.items():
+                    tracker = self._get_or_create_tracker(cid)
+                    tracker.restore(records)
                 self._deferred_peaks = None
+
             _LOGGER.debug(
                 "CostService configured: billing=%s peak_dur=%s id_period=%s n=%d fn=%s",
                 billing_str,
@@ -129,23 +154,17 @@ class CostService:
 
         self._configured = True
 
+    # ------------------------------------------------------------------
+    # Public interface
+    # ------------------------------------------------------------------
+
     def on_energy_update(
         self,
         reading_kwh: float,
         now: datetime,
         snapshot: ActiveTariffSnapshot,
     ) -> None:
-        """Process a new energy sensor reading.
-
-        Parameters
-        ----------
-        reading_kwh:
-            Cumulative energy reading from the HA sensor (kWh).
-        now:
-            Current datetime (timezone-aware).
-        snapshot:
-            The most recent tariff snapshot from the coordinator.
-        """
+        """Process a new energy sensor reading."""
         if not self._configured:
             self.configure_from_snapshot(snapshot)
 
@@ -164,7 +183,6 @@ class CostService:
         if self._prev_reading is not None:
             delta = reading_kwh - self._prev_reading
             if delta < 0:
-                # Sensor reset detected — treat as no delta this cycle.
                 _LOGGER.debug(
                     "Energy sensor reset detected (%.3f → %.3f), skipping delta",
                     self._prev_reading,
@@ -181,7 +199,7 @@ class CostService:
         self._prev_reading = reading_kwh
 
         # --- Peak window tracking ---
-        self._process_peak_window(reading_kwh, now)
+        self._process_peak_window(reading_kwh, now, snapshot)
 
     def get_breakdown(self, now: datetime, snapshot: ActiveTariffSnapshot) -> CostBreakdown:
         """Calculate and return the current cost breakdown."""
@@ -192,7 +210,8 @@ class CostService:
         fixed_cost = self._compute_fixed_cost(snapshot)
         currency = self._get_currency(snapshot)
 
-        tracker = self._peak_tracker
+        key = self._component_key(snapshot)
+        tracker = self._peak_trackers.get(key)
         return CostBreakdown(
             peak_cost=peak_cost,
             transmission_cost=self._accumulated_transmission,
@@ -216,11 +235,18 @@ class CostService:
 
     def save_state(self) -> dict:
         """Return a serialisable dict for RestoreEntity."""
+        # Flatten all per-component peaks into a single list, tagging each
+        # record with its component_id so restore_state can re-group them.
+        all_peaks: list[PeakRecord] = []
+        for cid, tracker in self._peak_trackers.items():
+            for record in tracker.serialise():
+                all_peaks.append(PeakRecord(dt=record.dt, value=record.value, component_id=cid))
+
         return CostServiceState(
             billing_period_start_iso=(
                 self._billing_period_start.isoformat() if self._billing_period_start else None
             ),
-            peaks=self._peak_tracker.serialise() if self._peak_tracker else [],
+            peaks=all_peaks,
             current_window_start_iso=(
                 self._current_window_start.isoformat() if self._current_window_start else None
             ),
@@ -247,17 +273,46 @@ class CostService:
         self._accumulated_tax = state.accumulated_tax_cost
         self._total_energy_kwh = state.total_energy_kwh
 
-        if self._peak_tracker and state.peaks:
-            self._peak_tracker.restore(state.peaks)
-        elif state.peaks:
-            # PeakTracker not yet created; store for deferred restore.
-            self._deferred_peaks = state.peaks
+        if state.peaks:
+            if self._peak_trackers:
+                # Trackers already exist — re-group and restore into them.
+                by_comp: dict[str, list[PeakRecord]] = {}
+                for record in state.peaks:
+                    key = record.component_id or _GLOBAL_KEY
+                    by_comp.setdefault(key, []).append(record)
+                for cid, records in by_comp.items():
+                    tracker = self._get_or_create_tracker(cid)
+                    tracker.restore(records)
+            else:
+                # PeakTrackers not yet created; store for deferred restore.
+                self._deferred_peaks = list(state.peaks)
 
         _LOGGER.info("CostService state restored (peaks=%d)", len(state.peaks))
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _component_key(self, snapshot: ActiveTariffSnapshot) -> str:
+        """Return a stable string key for the active power component.
+
+        Falls back to _GLOBAL_KEY when the component has no string id (e.g.
+        plain MagicMock in tests that don't set pc.id explicitly).
+        """
+        pc = snapshot.active_power_component
+        if pc is None:
+            return "__none__"
+        cid = getattr(pc, "id", None)
+        return cid if isinstance(cid, str) else _GLOBAL_KEY
+
+    def _get_or_create_tracker(self, key: str) -> PeakTracker:
+        if key not in self._peak_trackers:
+            self._peak_trackers[key] = PeakTracker(
+                identification_period=self._id_period,
+                number_of_peaks=self._number_of_peaks,
+                peak_function=self._peak_function,
+            )
+        return self._peak_trackers[key]
 
     def _reset_billing_period(self, now: datetime) -> None:
         """Reset all accumulators for a new billing period."""
@@ -268,14 +323,15 @@ class CostService:
         self._current_window_start = None
         self._current_window_start_reading = None
         self._current_window_peak = 0.0
-        if self._peak_tracker:
-            self._peak_tracker.reset()
+        self._current_window_component_id = None
+        for tracker in self._peak_trackers.values():
+            tracker.reset()
 
-    def _process_peak_window(self, reading_kwh: float, now: datetime) -> None:
-        """Track the peak_duration window and record peaks."""
-        if self._peak_tracker is None:
-            return
-
+    def _process_peak_window(
+        self, reading_kwh: float, now: datetime, snapshot: ActiveTariffSnapshot
+    ) -> None:
+        """Track the peak_duration window and record peaks per component."""
+        comp_key = self._component_key(snapshot)
         window_start_now = period_start(now, self._peak_duration)
 
         # Detect window transition
@@ -283,30 +339,31 @@ class CostService:
             self._current_window_start is not None
             and window_start_now != self._current_window_start
         ):
-            # The previous window has ended — finalise its peak
-            if self._current_window_peak > 0:
-                self._peak_tracker.try_add_peak(
-                    self._current_window_start, self._current_window_peak
-                )
+            # Finalise the previous window under whichever component was active then.
+            if self._current_window_peak > 0 and self._current_window_component_id is not None:
+                tracker = self._get_or_create_tracker(self._current_window_component_id)
+                tracker.try_add_peak(self._current_window_start, self._current_window_peak)
 
             # Reset for new window
             self._current_window_peak = 0.0
             self._current_window_start = window_start_now
             self._current_window_start_reading = self._prev_reading
+            self._current_window_component_id = comp_key
 
         if self._current_window_start is None:
             self._current_window_start = window_start_now
             self._current_window_start_reading = reading_kwh
+            self._current_window_component_id = comp_key
 
         # Update current window energy
         if self._current_window_start_reading is not None:
             window_energy = reading_kwh - self._current_window_start_reading
             if window_energy > self._current_window_peak:
                 self._current_window_peak = window_energy
-                # Also try to add/update peak in real-time
-                self._peak_tracker.try_add_peak(
-                    self._current_window_start, self._current_window_peak
-                )
+                # Real-time update to the tracker that owns this window.
+                if self._current_window_component_id is not None:
+                    tracker = self._get_or_create_tracker(self._current_window_component_id)
+                    tracker.try_add_peak(self._current_window_start, self._current_window_peak)
 
     def _energy_rates(self, snapshot: ActiveTariffSnapshot) -> tuple[float, float]:
         """Extract current transmission and tax rates from the snapshot."""
@@ -322,17 +379,17 @@ class CostService:
         return transmission, tax
 
     def _compute_peak_cost(self, snapshot: ActiveTariffSnapshot) -> float:
-        """charged_peak × active power price."""
-        if not self._peak_tracker:
-            return 0.0
-        charged = self._peak_tracker.charged_peak
-        if charged <= 0:
-            return 0.0
-
+        """charged_peak for the active component × its price."""
         pc = snapshot.active_power_component
         if pc is None:
             return 0.0
-
+        key = self._component_key(snapshot)
+        tracker = self._peak_trackers.get(key)
+        if not tracker:
+            return 0.0
+        charged = tracker.charged_peak
+        if charged <= 0:
+            return 0.0
         vat_mode = self._vat_mode
         price = pc.price.price_inc_vat if vat_mode == "inc_vat" else pc.price.price_ex_vat
         return charged * price
@@ -375,6 +432,13 @@ class CostService:
         if pc:
             return pc.price.currency
         return "SEK"
+
+    @property
+    def _peak_tracker(self) -> PeakTracker | None:
+        """Backward-compatible accessor used by tests that pre-date per-component tracking."""
+        if not self._configured:
+            return None
+        return self._get_or_create_tracker(_GLOBAL_KEY)
 
     @property
     def vat_mode(self) -> str:
