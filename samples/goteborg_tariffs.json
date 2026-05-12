@@ -1,0 +1,3032 @@
+{
+  "tariffs": [
+    {
+      "id": "5621c26d-6ad0-4b04-9274-42d287feece1",
+      "name": "Småhus och företag, Max 63A",
+      "description": "Elnätsavgifter för villor, radhus, kedjehus, företag med max 63A säkring.",
+      "validPeriod": {
+        "fromIncluding": "2025-01-01",
+        "toExcluding": "2026-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-01T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GNM63",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "275716de-087b-4f08-ae71-a2487f8c72de",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "97f0f5c6-b88b-4470-8560-ea4f02c7eb17",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 1776.0,
+              "priceIncVat": 2220.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "c9e48a62-6758-4345-85db-5b2504788b7d",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "9ca0163d-3edf-4dd6-9ff1-d7f12627c16c",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.2,
+              "priceIncVat": 0.25,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "37f08df9-7b5c-4b02-b2c6-c50c5f56ceb1",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.439,
+              "priceIncVat": 0.54875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "5e87dc68-bf36-4ca4-9369-98da77f3a3b7",
+        "name": "Effektpris",
+        "description": "Avgift som baseras på högsta uttagna medeleffekt per timme under månaden. Effektavgift debiteras månadsvis.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "e9d450dc-e966-47ff-a168-47d264ebd06c",
+            "name": "Effektavgift",
+            "type": "peak",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 36.0,
+              "priceIncVat": 45.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "fcec7b61-b555-4dd1-99f0-85f978bc6618",
+      "name": "Normaltariff - Över 63A",
+      "description": "Normaltariff för lågspänningskunder med säkring över 63A.",
+      "validPeriod": {
+        "fromIncluding": "2025-01-01",
+        "toExcluding": "2026-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-01T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GNO63",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "c8d75cf2-dbb3-4eb8-b8ee-7c4ffd2e15b2",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "040db865-f855-4331-82da-fab5229e6151",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 8700.0,
+              "priceIncVat": 10875.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "a13e10a8-1cbf-4c27-8dc1-38290c62f11e",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "4786807a-2112-4c76-9f11-4c8f34e65e63",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.113,
+              "priceIncVat": 0.14125,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "37f08df9-7b5c-4b02-b2c6-c50c5f56ceb1",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.439,
+              "priceIncVat": 0.54875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "dfc6ac63-cb1a-45d3-b17c-e734362adfc9",
+        "name": "Effektpris",
+        "description": "Avgift som baseras på högsta uttagna medeleffekt per timme under månaden. Effektavgift debiteras månadsvis.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "7e9b6a52-5321-4ac1-8d8b-b31dd10461d6",
+            "name": "Effektavgift",
+            "type": "peak",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 61.55,
+              "priceIncVat": 76.9375,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 1
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "c60f2eec-be3e-4d34-b747-613d7c9e3f19",
+      "name": "Tidsindelad 6 kW, Max 63A",
+      "description": "Tidsindelad 6 kW för villa och företag max 63A.",
+      "validPeriod": {
+        "fromIncluding": "2025-03-01",
+        "toExcluding": "2026-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-01T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GN6KW",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "cdf06103-daed-4550-9f0d-0fbbff328ad3",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "22e4d6ee-2dee-4924-bee6-594e02be3a67",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-03-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 1752.0,
+              "priceIncVat": 2190.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "02a08ce5-fea5-4ec1-b1ce-de7b8613b4ee",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "6798b988-8ddc-433e-8014-6c4c7d058503",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-03-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.06,
+              "priceIncVat": 0.075,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "37f08df9-7b5c-4b02-b2c6-c50c5f56ceb1",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.439,
+              "priceIncVat": 0.54875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "72ca0ec3-b01f-4e8b-8b16-156a3817b9e5",
+        "name": "Effektpris",
+        "description": "Effektavgift som beräknas utifrån medeleffekt av dina tre högsta högpristimmar varje månad, fördelat på tre olika dygn.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "f806531d-40ce-45eb-9802-b2ad5a4f3447",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_1",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2025-04-01"
+            },
+            "price": {
+              "priceExVat": 105.6,
+              "priceIncVat": 132.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "6fa60a16-4c7d-4036-974c-330a3f215ce6",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_1",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2025-04-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "8b418aab-7255-45c0-963e-4edd508fc3f5",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "summer",
+            "validPeriod": {
+              "fromIncluding": "2025-04-01",
+              "toExcluding": "2025-11-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "928716d9-36c2-4009-b6e8-8b56a3f44338",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_2",
+            "validPeriod": {
+              "fromIncluding": "2025-11-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 105.6,
+              "priceIncVat": 132.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "d58dd9d7-1782-4955-849e-6ce7d07bf146",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_2",
+            "validPeriod": {
+              "fromIncluding": "2025-11-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "89e7b55c-cfd5-41bf-8933-45488fdcf483",
+      "name": "Tidsindelad 14 kW, Max 63A",
+      "description": "Tidsindelad 14 kW för villa och företag max 63A.",
+      "validPeriod": {
+        "fromIncluding": "2025-03-01",
+        "toExcluding": "2026-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-01T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GN14KW",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "c30bbe11-676d-4997-aecf-8e14e476f445",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "5e5e8519-7813-41a0-8e1d-e16a7dadc978",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-03-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 3288.0,
+              "priceIncVat": 4110.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "02a08ce5-fea5-4ec1-b1ce-de7b8613b4ee",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "6798b988-8ddc-433e-8014-6c4c7d058503",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-03-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.06,
+              "priceIncVat": 0.075,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "37f08df9-7b5c-4b02-b2c6-c50c5f56ceb1",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.439,
+              "priceIncVat": 0.54875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "72ca0ec3-b01f-4e8b-8b16-156a3817b9e5",
+        "name": "Effektpris",
+        "description": "Effektavgift som beräknas utifrån medeleffekt av dina tre högsta högpristimmar varje månad, fördelat på tre olika dygn.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "f806531d-40ce-45eb-9802-b2ad5a4f3447",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_1",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2025-04-01"
+            },
+            "price": {
+              "priceExVat": 105.6,
+              "priceIncVat": 132.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "6fa60a16-4c7d-4036-974c-330a3f215ce6",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_1",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2025-04-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "8b418aab-7255-45c0-963e-4edd508fc3f5",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "summer",
+            "validPeriod": {
+              "fromIncluding": "2025-04-01",
+              "toExcluding": "2025-11-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "928716d9-36c2-4009-b6e8-8b56a3f44338",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_2",
+            "validPeriod": {
+              "fromIncluding": "2025-11-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 105.6,
+              "priceIncVat": 132.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "d58dd9d7-1782-4955-849e-6ce7d07bf146",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_2",
+            "validPeriod": {
+              "fromIncluding": "2025-11-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "275716de-087b-4f08-ae71-a2487f8c72de",
+      "name": "Tidsindelad 43 kW, Max 63A",
+      "description": "Tidsindelad 43 kW för villa och företag max 63A.",
+      "validPeriod": {
+        "fromIncluding": "2025-03-01",
+        "toExcluding": "2026-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-01T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GN43KW",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "93ee8874-04f9-46bd-b8c1-d495e4ac003e",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "10520f51-9d90-4277-833b-b0d9950f6220",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-03-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 8904.0,
+              "priceIncVat": 11130.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "02a08ce5-fea5-4ec1-b1ce-de7b8613b4ee",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "6798b988-8ddc-433e-8014-6c4c7d058503",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-03-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.06,
+              "priceIncVat": 0.075,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "37f08df9-7b5c-4b02-b2c6-c50c5f56ceb1",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.439,
+              "priceIncVat": 0.54875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "72ca0ec3-b01f-4e8b-8b16-156a3817b9e5",
+        "name": "Effektpris",
+        "description": "Effektavgift som beräknas utifrån medeleffekt av dina tre högsta högpristimmar varje månad, fördelat på tre olika dygn.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "f806531d-40ce-45eb-9802-b2ad5a4f3447",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_1",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2025-04-01"
+            },
+            "price": {
+              "priceExVat": 105.6,
+              "priceIncVat": 132.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "6fa60a16-4c7d-4036-974c-330a3f215ce6",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_1",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2025-04-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "8b418aab-7255-45c0-963e-4edd508fc3f5",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "summer",
+            "validPeriod": {
+              "fromIncluding": "2025-04-01",
+              "toExcluding": "2025-11-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "928716d9-36c2-4009-b6e8-8b56a3f44338",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_2",
+            "validPeriod": {
+              "fromIncluding": "2025-11-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 105.6,
+              "priceIncVat": 132.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "d58dd9d7-1782-4955-849e-6ce7d07bf146",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_2",
+            "validPeriod": {
+              "fromIncluding": "2025-11-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "3d83b252-f1c3-4a2b-b05f-b353f671c853",
+      "name": "Högspänning 10 kV",
+      "description": "Avgifter för 10 kV högspänningskunder.",
+      "validPeriod": {
+        "fromIncluding": "2025-01-01",
+        "toExcluding": "2026-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-01T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "HSP10KV",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "12435d7d-692b-4e82-8fb5-c03a9fab9b02",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "3c5a0b18-0c8c-4f1b-a098-ea10aa44f679",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 12000.0,
+              "priceIncVat": 15000.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "9082ff7b-8158-42e8-af92-b65e467aa063",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "3ca0515c-2595-476c-92a2-26991652c892",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.062,
+              "priceIncVat": 0.0775,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "37f08df9-7b5c-4b02-b2c6-c50c5f56ceb1",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 0.439,
+              "priceIncVat": 0.54875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "95349f08-1b6c-45a7-8d22-8e068085a029",
+        "name": "Effektpris",
+        "description": "Avgift som baseras på högsta uttagna medeleffekt per timme under månaden. Effektavgift debiteras månadsvis.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "9b1ab417-111e-4c0f-b1a2-67c05b2bc480",
+            "name": "Effektavgift Aktiv (kW)",
+            "type": "peak",
+            "reference": "active",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 52.4,
+              "priceIncVat": 65.5,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 1
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "15d58f16-67a6-434f-ac77-44d94d799ed4",
+            "name": "Effektavgift Reaktiv (kVAr)",
+            "type": "peak",
+            "reference": "reactive",
+            "validPeriod": {
+              "fromIncluding": "2025-01-01",
+              "toExcluding": "2026-01-01"
+            },
+            "price": {
+              "priceExVat": 16.6,
+              "priceIncVat": 20.75,
+              "currency": "SEK"
+            },
+            "unit": "kVAr",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 1
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "2d3d3e89-9fb0-4db4-be93-806a0e891fe8",
+      "name": "Småhus och företag, Max 63A",
+      "description": "Elnätsavgifter för villor, radhus, kedjehus, företag med max 63A säkring.",
+      "validPeriod": {
+        "fromIncluding": "2026-01-01",
+        "toExcluding": "2027-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-03T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GNM63",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "7b9a907e-8c6a-4c70-91a1-5a5600c94c41",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "88d8f0c3-d87e-494e-b5dd-4eb74dbfc23c",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 1968.0,
+              "priceIncVat": 2460.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "c437774d-2cdf-43a0-ae87-8e7d03d9c885",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "3cbd0f64-4cf7-424f-8ba7-808f66b9379e",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.184,
+              "priceIncVat": 0.23,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "7ddd6929-e035-42d7-8a22-81221f2340fb",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.36,
+              "priceIncVat": 0.45,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "d8899b8a-4daf-47d7-a7cc-d7eabfa3b743",
+        "name": "Effektpris",
+        "description": "Avgift som baseras på högsta uttagna medeleffekt per timme under månaden. Effektavgift debiteras månadsvis.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "3cf91529-6a99-4b44-a3be-6e2eef0928bc",
+            "name": "Effektavgift",
+            "type": "peak",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 39.2,
+              "priceIncVat": 49.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "53fb5c6c-e52f-4828-9d9c-80ab73c0a834",
+      "name": "Normaltariff - Över 63A",
+      "description": "Normaltariff för lågspänningskunder med säkring över 63A.",
+      "validPeriod": {
+        "fromIncluding": "2026-01-01",
+        "toExcluding": "2027-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-03T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GNO63",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "49a55b64-efa2-4ca9-989c-b84c9789bd21",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "5090d5e1-c34a-4e2f-9225-728b596a8861",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 9600.0,
+              "priceIncVat": 12000.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "673f9480-065f-464f-947d-ffa6a449370a",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "fc3fe6b4-09e1-4ac0-93b3-becc4554e0bb",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.105,
+              "priceIncVat": 0.13125,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "7ddd6929-e035-42d7-8a22-81221f2340fb",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.36,
+              "priceIncVat": 0.45,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "3d3a8729-b194-4ad0-9e6a-a1dd7e26e9f4",
+        "name": "Effektpris",
+        "description": "Avgift som baseras på högsta uttagna medeleffekt per timme under månaden. Effektavgift debiteras månadsvis.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "5d3a2408-d831-405f-90a5-e5b30e9da113",
+            "name": "Effektavgift",
+            "type": "peak",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 66.3,
+              "priceIncVat": 82.875,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 1
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "3e90a7bf-fd2a-4134-8c79-49611e7fffef",
+      "name": "Tidsindelad 6 kW, Max 63A",
+      "description": "Tidsindelad 6 kW för villa och företag max 63A.",
+      "validPeriod": {
+        "fromIncluding": "2026-01-01",
+        "toExcluding": "2027-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-03T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GN6KW",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "8b95af37-66a0-4942-a523-0d3696da2646",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "06ac0505-0f4c-41e6-a7da-bbe4b395e404",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 1920.0,
+              "priceIncVat": 2400.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "28d6d0e1-37de-4605-a7ac-80755445a620",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "f822d0eb-8237-4854-b0ee-87fd6eeafb28",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.052,
+              "priceIncVat": 0.065,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "7ddd6929-e035-42d7-8a22-81221f2340fb",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.36,
+              "priceIncVat": 0.45,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "bc318ab6-2f0f-489b-8014-dd96a4eff557",
+        "name": "Effektpris",
+        "description": "Effektavgift som beräknas utifrån medeleffekt av dina tre högsta högpristimmar varje månad, fördelat på tre olika dygn.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "c59f3a7d-9f2d-4b70-a5cb-4f525a8c2233",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_1",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2026-04-01"
+            },
+            "price": {
+              "priceExVat": 108.0,
+              "priceIncVat": 135.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cfb2c2c3-a0b0-49d6-b126-b466c89d27d9",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_1",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2026-04-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "40365c8c-2bad-4f0d-914e-460a90ae5edf",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "summer",
+            "validPeriod": {
+              "fromIncluding": "2026-04-01",
+              "toExcluding": "2026-11-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dedb4977-082c-46db-8017-5afee0290cf1",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_2",
+            "validPeriod": {
+              "fromIncluding": "2026-11-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 108.0,
+              "priceIncVat": 135.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c2905f5c-0a5a-4c1f-a689-e2dc45170ab0",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_2",
+            "validPeriod": {
+              "fromIncluding": "2026-11-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "397dfcb3-2985-47cb-94b7-d31c0f2a958e",
+      "name": "Tidsindelad 14 kW, Max 63A",
+      "description": "Tidsindelad 14 kW för villa och företag max 63A.",
+      "validPeriod": {
+        "fromIncluding": "2026-01-01",
+        "toExcluding": "2027-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-03T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GN14KW",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "8b582861-96a7-4e82-af11-414cf15f5263",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "ae11ba0e-9ba4-45f1-9937-8aacaaf74c51",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 3552.0,
+              "priceIncVat": 4440.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "28d6d0e1-37de-4605-a7ac-80755445a620",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "f822d0eb-8237-4854-b0ee-87fd6eeafb28",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.052,
+              "priceIncVat": 0.065,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "7ddd6929-e035-42d7-8a22-81221f2340fb",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.36,
+              "priceIncVat": 0.45,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "bc318ab6-2f0f-489b-8014-dd96a4eff557",
+        "name": "Effektpris",
+        "description": "Effektavgift som beräknas utifrån medeleffekt av dina tre högsta högpristimmar varje månad, fördelat på tre olika dygn.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "c59f3a7d-9f2d-4b70-a5cb-4f525a8c2233",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_1",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2026-04-01"
+            },
+            "price": {
+              "priceExVat": 108.0,
+              "priceIncVat": 135.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cfb2c2c3-a0b0-49d6-b126-b466c89d27d9",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_1",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2026-04-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "40365c8c-2bad-4f0d-914e-460a90ae5edf",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "summer",
+            "validPeriod": {
+              "fromIncluding": "2026-04-01",
+              "toExcluding": "2026-11-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dedb4977-082c-46db-8017-5afee0290cf1",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_2",
+            "validPeriod": {
+              "fromIncluding": "2026-11-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 108.0,
+              "priceIncVat": 135.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c2905f5c-0a5a-4c1f-a689-e2dc45170ab0",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_2",
+            "validPeriod": {
+              "fromIncluding": "2026-11-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "234bd7d3-0f7e-454b-b764-a31e6dbec498",
+      "name": "Tidsindelad 43 kW, Max 63A",
+      "description": "Tidsindelad 43 kW för villa och företag max 63A.",
+      "validPeriod": {
+        "fromIncluding": "2026-01-01",
+        "toExcluding": "2027-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-03T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "GN43KW",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "d43483ad-cb43-4c41-95a5-c0a1cc17226a",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "b8c291e6-fa33-4ad6-8a6d-44500ddf28a8",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 9504.0,
+              "priceIncVat": 11880.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "28d6d0e1-37de-4605-a7ac-80755445a620",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "f822d0eb-8237-4854-b0ee-87fd6eeafb28",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.052,
+              "priceIncVat": 0.065,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "7ddd6929-e035-42d7-8a22-81221f2340fb",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.36,
+              "priceIncVat": 0.45,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "bc318ab6-2f0f-489b-8014-dd96a4eff557",
+        "name": "Effektpris",
+        "description": "Effektavgift som beräknas utifrån medeleffekt av dina tre högsta högpristimmar varje månad, fördelat på tre olika dygn.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "c59f3a7d-9f2d-4b70-a5cb-4f525a8c2233",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_1",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2026-04-01"
+            },
+            "price": {
+              "priceExVat": 108.0,
+              "priceIncVat": 135.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cfb2c2c3-a0b0-49d6-b126-b466c89d27d9",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_1",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2026-04-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "40365c8c-2bad-4f0d-914e-460a90ae5edf",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "summer",
+            "validPeriod": {
+              "fromIncluding": "2026-04-01",
+              "toExcluding": "2026-11-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "dedb4977-082c-46db-8017-5afee0290cf1",
+            "name": "Tidsindelad, effektavgift hög",
+            "type": "peak",
+            "reference": "winter_high_2",
+            "validPeriod": {
+              "fromIncluding": "2026-11-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 108.0,
+              "priceIncVat": 135.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "07:00:00",
+                    "toExcluding": "20:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "c2905f5c-0a5a-4c1f-a689-e2dc45170ab0",
+            "name": "Tidsindelad, effektavgift låg",
+            "type": "peak",
+            "reference": "winter_low_2",
+            "validPeriod": {
+              "fromIncluding": "2026-11-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.0,
+              "priceIncVat": 0.0,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 3
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "07:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "20:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays"
+                      ],
+                      "exclude": [
+                        "holidays"
+                      ]
+                    }
+                  },
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekends",
+                        "holidays"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "039dd520-6f62-4680-8537-5518097bd52e",
+      "name": "Högspänning 10 kV",
+      "description": "Avgifter för 10 kV högspänningskunder.",
+      "validPeriod": {
+        "fromIncluding": "2026-01-01",
+        "toExcluding": "2027-01-01"
+      },
+      "timeZone": "Europe/Stockholm",
+      "lastUpdated": "2025-12-03T12:00:00",
+      "companyName": "Göteborg Energi Nät AB",
+      "companyOrgNo": "556379-2729",
+      "product": "HSP10KV",
+      "direction": "consumption",
+      "billingPeriod": "P1M",
+      "fixedPrice": {
+        "id": "41876ce7-9952-4a84-a6ef-d487bd8f3a1f",
+        "name": "Fast pris",
+        "description": "",
+        "costFunction": "sum(price(c))",
+        "components": [
+          {
+            "id": "3b17f753-58ba-4919-93c3-953dade768e4",
+            "name": "Fast avgift",
+            "description": "Fast årlig avgift som baseras på avtalad tariff. I abonnemanget ingår elberedskaps-, elsäkerhets- och nätövervakningsavgift. Abonnemangsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 13200.0,
+              "priceIncVat": 16500.0,
+              "currency": "SEK"
+            },
+            "pricedPeriod": "P1Y"
+          }
+        ]
+      },
+      "energyPrice": {
+        "id": "364c4df3-b249-4c06-8fce-2dfa34e307bd",
+        "name": "Energipris",
+        "description": "",
+        "costFunction": "sum(energy(c)*price(c))",
+        "components": [
+          {
+            "id": "51817b2e-8619-4f9e-8920-42de4358e1a5",
+            "name": "Elöverföringsavgift",
+            "description": "Avgift som baseras på hur många kWh el som överförts under månaden. Elöverföringsavgift debiteras månadsvis.",
+            "type": "fixed",
+            "reference": "main",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.055,
+              "priceIncVat": 0.06875,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          },
+          {
+            "id": "7ddd6929-e035-42d7-8a22-81221f2340fb",
+            "name": "Energiskatt",
+            "description": "Energiskatten är en punktskatt som betalas av elkonsumenter. Det är den svenska regeringen som ansvarar för energiskatten. Förslag till ny energiskatt räknas årligen upp automatiskt baserat på KPI, konsumentprisindex.Energiskatten är momsbelagd med 25%. Det är ditt elnätsföretag som har i uppdrag att samla in energiskatten från sina kunder och därefter deklarera och betala in pengarna till Skatteverket.",
+            "type": "fixed",
+            "reference": "tax",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 0.36,
+              "priceIncVat": 0.45,
+              "currency": "SEK"
+            },
+            "unit": "kWh",
+            "recurringPeriods": []
+          }
+        ]
+      },
+      "powerPrice": {
+        "id": "81f07ee4-334d-471b-8449-c7d705d38f6c",
+        "name": "Effektpris",
+        "description": "Avgift som baseras på högsta uttagna medeleffekt per timme under månaden. Effektavgift debiteras månadsvis.",
+        "costFunction": "sum(peak(c)*price(c))",
+        "components": [
+          {
+            "id": "7d6c00b6-776e-462d-87a7-fb87d29188a5",
+            "name": "Effektavgift Aktiv (kW)",
+            "type": "peak",
+            "reference": "active",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 57.9,
+              "priceIncVat": 72.375,
+              "currency": "SEK"
+            },
+            "unit": "kW",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 1
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "235da1d8-93bd-4d7e-916d-bf52c6012470",
+            "name": "Effektavgift Reaktiv (kVAr)",
+            "type": "peak",
+            "reference": "reactive",
+            "validPeriod": {
+              "fromIncluding": "2026-01-01",
+              "toExcluding": "2027-01-01"
+            },
+            "price": {
+              "priceExVat": 16.6,
+              "priceIncVat": 20.75,
+              "currency": "SEK"
+            },
+            "unit": "kVAr",
+            "peakIdentificationSettings": {
+              "peakFunction": "peak(main)",
+              "peakIdentificationPeriod": "P1D",
+              "peakDuration": "PT1H",
+              "numberOfPeaksForAverageCalculation": 1
+            },
+            "recurringPeriods": [
+              {
+                "reference": "main",
+                "frequency": "P1D",
+                "activePeriods": [
+                  {
+                    "fromIncluding": "00:00:00",
+                    "toExcluding": "00:00:00",
+                    "calendarPatternReferences": {
+                      "include": [
+                        "weekdays",
+                        "weekends"
+                      ],
+                      "exclude": []
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "calendarPatterns": [
+    {
+      "reference": "weekdays",
+      "frequency": "P1W",
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "dates": []
+    },
+    {
+      "reference": "weekends",
+      "frequency": "P1W",
+      "days": [
+        6,
+        7
+      ],
+      "dates": []
+    },
+    {
+      "reference": "holidays",
+      "frequency": "P1Y",
+      "days": [],
+      "dates": [
+        "2025-01-01",
+        "2025-01-06",
+        "2025-04-18",
+        "2025-04-21",
+        "2025-05-01",
+        "2025-05-29",
+        "2025-06-06",
+        "2025-06-20",
+        "2025-12-24",
+        "2025-12-25",
+        "2025-12-26",
+        "2025-12-31",
+        "2026-01-01",
+        "2026-01-06",
+        "2026-04-03",
+        "2026-04-06",
+        "2026-05-01",
+        "2026-05-14",
+        "2026-06-06",
+        "2026-06-19",
+        "2026-12-24",
+        "2026-12-25",
+        "2026-12-26",
+        "2026-12-31"
+      ]
+    }
+  ]
+}

@@ -13,7 +13,6 @@ The structure of Swedish grid tariffs is complex, with multiple price components
 | Skånska Energi Nät AB | `skanska_energi` |
 | Kraftringen Nät AB | `kraftringen_nat` |
 
-Any DSO that implements the RI-SE Grid Tariff API can also be connected via the "Custom URL" option in the configuration flow.
 
 ## Installation
 
@@ -25,7 +24,7 @@ Any DSO that implements the RI-SE Grid Tariff API can also be connected via the 
 
 The setup flow has three steps:
 
-1. **Pick DSO** — select your grid owner from the dropdown, or choose "Custom URL" and enter the API base URL. The integration validates the endpoint before proceeding.
+1. **Pick DSO** — select your grid owner from the dropdown. The integration validates the endpoint before proceeding.
 2. **Pick tariff** — select your tariff from the list. The tariff currently valid today is listed first.
 3. **Options** — choose whether sensor values should include or exclude VAT (`inc_vat` / `ex_vat`). Optionally enter a Bearer token if your DSO requires authentication. Optionally select an **energy sensor** to enable running cost tracking (see [Running cost sensor](#running-cost-sensor) below).
 

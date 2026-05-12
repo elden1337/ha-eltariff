@@ -1,8 +1,6 @@
 """Constants for the eltariff integration."""
 DOMAIN = "eltariff"
 
-DEFAULT_BASE_URL = "https://api.goteborgenergi.cloud/gridtariff/v0"
-
 CONF_BASE_URL = "base_url"
 CONF_TARIFF_ID = "tariff_id"
 CONF_TARIFF_NAME = "tariff_name"
@@ -33,10 +31,6 @@ KNOWN_DSOS: dict[str, dict[str, str]] = {
         "name": "Kraftringen Nät AB",
         # /tariffs is part of the base path for this DSO's API
         "base_url": "https://apim.kraftringen.se/customer/tariffs",
-    },
-    "custom": {
-        "name": "Custom URL",
-        "base_url": "",
     },
 }
 

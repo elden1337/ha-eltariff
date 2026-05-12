@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 
 from .iso_duration import (
     ParsedDuration,
-    elapsed_fraction,
     is_same_period,
     parse_iso_duration,
     period_end,
@@ -188,7 +187,7 @@ class CostService:
             self.configure_from_snapshot(snapshot)
 
         peak_cost = self._compute_peak_cost(snapshot)
-        fixed_cost = self._compute_fixed_cost(now, snapshot)
+        fixed_cost = self._compute_fixed_cost(snapshot)
         currency = self._get_currency(snapshot)
 
         tracker = self._peak_tracker
@@ -354,9 +353,9 @@ class CostService:
         return charged * price
 
     def _compute_fixed_cost(
-        self, now: datetime, snapshot: ActiveTariffSnapshot
+        self, snapshot: ActiveTariffSnapshot
     ) -> float:
-        """Prorate annual fixed costs to elapsed billing period."""
+        """Return the full fixed cost for the current billing period (lump sum)."""
         if not snapshot.active_fixed_components:
             return 0.0
 
@@ -373,13 +372,16 @@ class CostService:
         if annual_total <= 0:
             return 0.0
 
-        # Prorate: annual_total / 12 × fraction_elapsed_in_billing_period
-        fraction = elapsed_fraction(now, self._billing_duration)
-        # The fixed cost for one billing period
-        period_fixed = annual_total / (12.0 if self._billing_duration.months == 1 else
-                                       (365.25 / max(1, self._billing_duration.days))
-                                       if self._billing_duration.days else 12.0)
-        return period_fixed * fraction
+        dur = self._billing_duration
+        if dur.years:
+            divisor = 1.0
+        elif dur.months:
+            divisor = 12.0 / dur.months
+        elif dur.days:
+            divisor = 365.25 / dur.days
+        else:
+            divisor = 12.0
+        return annual_total / divisor
 
     def _get_currency(self, snapshot: ActiveTariffSnapshot) -> str:
         """Best-effort currency from the snapshot."""

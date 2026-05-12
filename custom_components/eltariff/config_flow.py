@@ -47,25 +47,19 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             dso_key = user_input[CONF_DSO_KEY]
-            if dso_key == "custom":
-                base_url = user_input.get(CONF_BASE_URL, "").rstrip("/")
-                if not base_url:
-                    errors[CONF_BASE_URL] = "invalid_url"
-            else:
-                base_url = KNOWN_DSOS[dso_key]["base_url"]
+            base_url = KNOWN_DSOS[dso_key]["base_url"]
 
-            if not errors:
-                try:
-                    session = async_get_clientsession(self.hass)
-                    client = TariffApiClient(base_url, session, None)
-                    await client.get_info()
-                except TariffApiAuthError:
-                    errors["base"] = "auth_error"
-                except TariffApiError:
-                    errors["base"] = "cannot_connect"
-                except Exception:
-                    _LOGGER.exception("Unexpected error validating DSO endpoint")
-                    errors["base"] = "unknown"
+            try:
+                session = async_get_clientsession(self.hass)
+                client = TariffApiClient(base_url, session, None)
+                await client.get_info()
+            except TariffApiAuthError:
+                errors["base"] = "auth_error"
+            except TariffApiError:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Unexpected error validating DSO endpoint")
+                errors["base"] = "unknown"
 
             if not errors:
                 self._form_data[CONF_DSO_KEY] = dso_key
@@ -76,7 +70,6 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
 
         schema_dict: dict = {
             vol.Required(CONF_DSO_KEY): vol.In(dso_options),
-            vol.Optional(CONF_BASE_URL): str,
         }
 
         return self.async_show_form(
@@ -125,8 +118,25 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
             key=lambda t: (0 if t.valid_period.contains(now) else 1),
         )
 
-        self._available_tariffs = [{"id": t.id, "name": t.name} for t in sorted_tariffs]
-        tariff_options = {t["id"]: t["name"] for t in self._available_tariffs}
+        self._available_tariffs = [
+            {
+                "id": t.id,
+                "name": t.name,
+                "valid_from": t.valid_period.from_including.isoformat(),
+                "valid_to": (
+                    t.valid_period.to_excluding.isoformat()
+                    if t.valid_period.to_excluding is not None
+                    else None
+                ),
+            }
+            for t in sorted_tariffs
+        ]
+
+        def _label(t: dict) -> str:
+            to_str = t["valid_to"] if t["valid_to"] else "present"
+            return f"{t['name']} ({t['valid_from']} – {to_str})"
+
+        tariff_options = {t["id"]: _label(t) for t in self._available_tariffs}
 
         return self.async_show_form(
             step_id="tariff",
