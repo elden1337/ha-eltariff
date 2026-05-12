@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import voluptuous as vol
@@ -15,6 +15,7 @@ from .const import (
     CONF_BEARER_TOKEN,
     CONF_DSO_KEY,
     CONF_TARIFF_ID,
+    CONF_TARIFF_NAME,
     CONF_VAT_MODE,
     DOMAIN,
     KNOWN_DSOS,
@@ -111,7 +112,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors=errors,
             )
 
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         sorted_tariffs = sorted(
             collection.tariffs,
             key=lambda t: (0 if t.valid_period.contains(now) else 1),
@@ -145,6 +146,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
                 title=f"{dso_name} — {tariff_name}",
                 data={
                     **self._form_data,
+                    CONF_TARIFF_NAME: tariff_name,
                     CONF_VAT_MODE: user_input[CONF_VAT_MODE],
                     CONF_BEARER_TOKEN: user_input.get(CONF_BEARER_TOKEN) or None,
                 },
