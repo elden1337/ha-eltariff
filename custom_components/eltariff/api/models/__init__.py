@@ -16,6 +16,7 @@ from .recurring_period import RecurringPeriod
 from .schedule_slot import ScheduleSlot
 from .server import ServerInfo
 from .snapshot import ActiveTariffSnapshot
+from .spot_price_settings import SpotPriceSettings
 from .tariff import Tariff
 from .tariff_collection import TariffCollection
 from .valid_period import ValidPeriod
@@ -34,6 +35,7 @@ __all__ = [
     "RecurringPeriod",
     "ScheduleSlot",
     "ServerInfo",
+    "SpotPriceSettings",
     "Tariff",
     "TariffCollection",
     "ValidPeriod",

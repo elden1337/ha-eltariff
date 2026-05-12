@@ -14,17 +14,21 @@ class CalendarPattern:
     name: str
     pattern_type: CalendarPatternType
     dates: list[date] = field(default_factory=list)
+    days: list[int] = field(default_factory=list)
+    # ISO 8601 duration string (e.g. "PT15M")
+    frequency: str | None = None
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> CalendarPattern:
         id_ = d.get("id") or d.get("reference", "")
+        days = list(d.get("days", []))
         if "type" in d:
             pattern_type = CalendarPatternType(d["type"])
         else:
-            days = set(d.get("days", []))
-            if days & {6, 7}:
+            days_set = set(days)
+            if days_set & {6, 7}:
                 pattern_type = CalendarPatternType.WEEKENDS
-            elif days & {1, 2, 3, 4, 5}:
+            elif days_set & {1, 2, 3, 4, 5}:
                 pattern_type = CalendarPatternType.WEEKDAYS
             else:
                 pattern_type = CalendarPatternType.HOLIDAYS
@@ -33,4 +37,6 @@ class CalendarPattern:
             name=d.get("name", ""),
             pattern_type=pattern_type,
             dates=[date.fromisoformat(dt) for dt in d.get("dates", [])],
+            days=days,
+            frequency=d.get("frequency"),
         )

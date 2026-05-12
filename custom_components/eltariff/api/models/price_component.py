@@ -8,6 +8,7 @@ from .component_type import ComponentType
 from .peak_identification_settings import PeakIdentificationSettings
 from .price import Price
 from .recurring_period import RecurringPeriod
+from .spot_price_settings import SpotPriceSettings
 from .valid_period import ValidPeriod
 
 
@@ -21,6 +22,12 @@ class PriceComponent:
     price: Price
     recurring_periods: list[RecurringPeriod] = field(default_factory=list)
     peak_identification_settings: PeakIdentificationSettings | None = None
+    name: str | None = None
+    unit: str | None = None
+    url: str | None = None
+    spot_price_settings: SpotPriceSettings | None = None
+    # ISO 8601 duration string (e.g. "PT15M"); used on fixed-price components
+    priced_period: str | None = None
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> PriceComponent:
@@ -37,4 +44,13 @@ class PriceComponent:
                 if "peakIdentificationSettings" in d
                 else None
             ),
+            name=d.get("name"),
+            unit=d.get("unit"),
+            url=d.get("url"),
+            spot_price_settings=(
+                SpotPriceSettings.from_dict(d["spotPriceSettings"])
+                if "spotPriceSettings" in d
+                else None
+            ),
+            priced_period=d.get("pricedPeriod"),
         )

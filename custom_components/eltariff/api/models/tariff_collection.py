@@ -16,8 +16,15 @@ class TariffCollection:
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> TariffCollection:
+        # The API may return either a list ("tariffs") or a single object ("tariff")
+        if "tariffs" in d:
+            tariffs = [Tariff.from_dict(t) for t in d["tariffs"]]
+        elif "tariff" in d:
+            tariffs = [Tariff.from_dict(d["tariff"])]
+        else:
+            tariffs = []
         return cls(
-            tariffs=[Tariff.from_dict(t) for t in d.get("tariffs", [])],
+            tariffs=tariffs,
             calendar_patterns=[CalendarPattern.from_dict(p) for p in d.get("calendarPatterns", [])],
         )
 
