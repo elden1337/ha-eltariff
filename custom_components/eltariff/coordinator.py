@@ -120,16 +120,11 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
                     f"Configured tariff {self.tariff_id!r} not found in API response"
                 )
 
-            _LOGGER.warning(
-                (
-                    "Configured tariff id %s is no longer available (possibly expired); "
-                    "auto-switched to %s (%s) "
-                    "and continuing updates"
-                ),
-                self.tariff_id,
-                tariff.id,
-                tariff.name,
+            message = (
+                "Configured tariff id %s is no longer available (possibly expired); "
+                "auto-switched to %s (%s) and continuing updates"
             )
+            _LOGGER.warning(message, self.tariff_id, tariff.id, tariff.name)
             self.hass.config_entries.async_update_entry(
                 self._config_entry,
                 data={

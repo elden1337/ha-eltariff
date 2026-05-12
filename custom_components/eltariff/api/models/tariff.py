@@ -54,6 +54,7 @@ class TariffCollection:
 
         If *at* is provided, active matches are preferred. When several active
         matches exist, the tariff with the latest ``from_including`` is chosen.
+        If *at* is not provided, the latest ``from_including`` match is returned.
         """
         candidates = [t for t in self.tariffs if t.name == name]
         if not candidates:
