@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Anslut till elnätstaxe-API",
+        "title": "Anslut till eltariff-API",
         "data": {
           "base_url": "API-bas-URL",
           "bearer_token": "Bearer-token (valfritt)"
