@@ -25,7 +25,7 @@ async def async_setup_entry(
     coordinator: EltariffCoordinator = hass.data[DOMAIN][entry.entry_id]
     vat_mode = entry.options.get(CONF_VAT_MODE) or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
 
-    async_add_entities([
+    entities = [
         ActivePowerPriceSensor(coordinator, entry, vat_mode),
         ActivePowerBandSensor(coordinator, entry),
         EnergyPriceTotalSensor(coordinator, entry, vat_mode),
@@ -34,4 +34,13 @@ async def async_setup_entry(
         FixedPriceAnnualSensor(coordinator, entry, vat_mode),
         PeaksUsedForAverageSensor(coordinator, entry),
         NextTransitionSensor(coordinator, entry),
-    ])
+    ]
+
+    # Add the running cost sensor if an energy sensor (and thus CostService) is configured.
+    cost_service = hass.data[DOMAIN].get(f"{entry.entry_id}_cost_service")
+    if cost_service is not None:
+        from .running_cost import RunningCostSensor
+
+        entities.append(RunningCostSensor(coordinator, entry, cost_service, vat_mode))
+
+    async_add_entities(entities)

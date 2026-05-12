@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from .const import CONF_POWER_SENSOR, CONF_POWER_SENSOR_UNIT, DOMAIN, POWER_UNIT_W
+from .const import CONF_ENERGY_SENSOR, CONF_VAT_MODE, DOMAIN, VAT_MODE_INC
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -16,23 +16,15 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "binary_sensor"]
 
 
-def _power_entity_id(entry: "ConfigEntry") -> str | None:
+def _energy_entity_id(entry: ConfigEntry) -> str | None:
     return (
-        entry.options.get(CONF_POWER_SENSOR)
-        or entry.data.get(CONF_POWER_SENSOR)
+        entry.options.get(CONF_ENERGY_SENSOR)
+        or entry.data.get(CONF_ENERGY_SENSOR)
         or None
     )
 
 
-def _power_unit(entry: "ConfigEntry") -> str:
-    return (
-        entry.options.get(CONF_POWER_SENSOR_UNIT)
-        or entry.data.get(CONF_POWER_SENSOR_UNIT)
-        or POWER_UNIT_W
-    )
-
-
-async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .coordinator import EltariffCoordinator
 
     coordinator = EltariffCoordinator(hass, entry)
@@ -40,15 +32,41 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Set up energy tracker and cost service if an energy sensor is configured.
+    energy_id = _energy_entity_id(entry)
+    if energy_id:
+        from .billing.cost_service import CostService
+        from .energy_tracker import EnergyTracker
 
-    # Set up power meter tracker if the user has configured one.
-    power_id = _power_entity_id(entry)
-    if power_id:
-        from .power_tracker import PowerTracker
-        tracker = PowerTracker(hass, power_id, _power_unit(entry))
+        vat_mode = (
+            entry.options.get(CONF_VAT_MODE)
+            or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
+        )
+
+        cost_service = CostService()
+        cost_service.vat_mode = vat_mode
+
+        # Configure from the initial snapshot
+        if coordinator.data and coordinator.data.snapshot:
+            cost_service.configure_from_snapshot(coordinator.data.snapshot)
+
+        tracker = EnergyTracker(hass, energy_id)
+
+        def _on_energy(value: float) -> None:
+            if coordinator.data and coordinator.data.snapshot:
+                cost_service.on_energy_update(
+                    reading_kwh=value,
+                    now=datetime.now(tz=UTC),
+                    snapshot=coordinator.data.snapshot,
+                )
+
+        tracker.on_update(_on_energy)
+
         hass.data[DOMAIN][f"{entry.entry_id}_tracker"] = tracker
+        hass.data[DOMAIN][f"{entry.entry_id}_cost_service"] = cost_service
         entry.async_on_unload(tracker.async_setup())
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Reload this entry whenever options are saved so the tracker and VAT mode
     # are updated without requiring a manual restart.
@@ -64,16 +82,16 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
 
     if not hass.services.has_service(DOMAIN, "get_schedule"):
         async def handle_get_schedule(call) -> dict:
-            from homeassistant.core import SupportsResponse  # noqa: F401 — imported for register call below
-            from .api.schedule import build_day_schedule
             import zoneinfo
+
+            from homeassistant.core import SupportsResponse  # noqa: F401
+
+            from .api.schedule import build_day_schedule
 
             raw_date = call.data.get("date")
             days = int(call.data.get("days", 1))
             start_day = date.fromisoformat(raw_date) if raw_date else date.today()
 
-            # Use the first loaded coordinator — get_schedule targets a specific entry
-            # via the service data in future; for now use the calling entry's coordinator.
             coord = hass.data[DOMAIN].get(entry.entry_id)
             if coord is None or coord.data is None:
                 return {"schedule": []}
@@ -117,14 +135,15 @@ async def async_setup_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool
     return True
 
 
-async def _async_options_updated(hass: "HomeAssistant", entry: "ConfigEntry") -> None:
-    """Reload the entry so VAT mode, bearer token and power tracker are updated."""
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the entry so VAT mode, bearer token and energy tracker are updated."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: "HomeAssistant", entry: "ConfigEntry") -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id, None)
         hass.data[DOMAIN].pop(f"{entry.entry_id}_tracker", None)
+        hass.data[DOMAIN].pop(f"{entry.entry_id}_cost_service", None)
     return unloaded

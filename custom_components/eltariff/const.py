@@ -9,8 +9,7 @@ CONF_TARIFF_NAME = "tariff_name"
 CONF_VAT_MODE = "vat_mode"
 CONF_BEARER_TOKEN = "bearer_token"
 CONF_DSO_KEY = "dso_key"
-CONF_POWER_SENSOR = "power_sensor_entity_id"
-CONF_POWER_SENSOR_UNIT = "power_sensor_unit"
+CONF_ENERGY_SENSOR = "energy_sensor_entity_id"
 
 KNOWN_DSOS: dict[str, dict[str, str]] = {
     "goteborg_energi": {
@@ -44,10 +43,6 @@ KNOWN_DSOS: dict[str, dict[str, str]] = {
 VAT_MODE_INC = "inc_vat"
 VAT_MODE_EX = "ex_vat"
 VAT_MODES = [VAT_MODE_INC, VAT_MODE_EX]
-
-POWER_UNIT_W = "W"
-POWER_UNIT_KW = "kW"
-POWER_UNITS = [POWER_UNIT_W, POWER_UNIT_KW]
 
 # How often to poll /info to check tariffDataLastUpdated (base interval, before jitter)
 INFO_POLL_BASE_SECONDS = 12 * 3600  # ~12 hours

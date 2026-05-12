@@ -16,15 +16,12 @@ from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,
     CONF_DSO_KEY,
-    CONF_POWER_SENSOR,
-    CONF_POWER_SENSOR_UNIT,
+    CONF_ENERGY_SENSOR,
     CONF_TARIFF_ID,
     CONF_TARIFF_NAME,
     CONF_VAT_MODE,
     DOMAIN,
     KNOWN_DSOS,
-    POWER_UNIT_W,
-    POWER_UNITS,
     VAT_MODE_INC,
     VAT_MODES,
 )
@@ -40,7 +37,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
         self._available_tariffs: list[dict] = []
 
     @staticmethod
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> "EltariffOptionsFlow":
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> EltariffOptionsFlow:
         return EltariffOptionsFlow(config_entry)
 
     async def async_step_user(
@@ -159,8 +156,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_TARIFF_NAME: tariff_name,
                     CONF_VAT_MODE: user_input[CONF_VAT_MODE],
                     CONF_BEARER_TOKEN: user_input.get(CONF_BEARER_TOKEN) or None,
-                    CONF_POWER_SENSOR: user_input.get(CONF_POWER_SENSOR) or None,
-                    CONF_POWER_SENSOR_UNIT: user_input.get(CONF_POWER_SENSOR_UNIT, POWER_UNIT_W),
+                    CONF_ENERGY_SENSOR: user_input.get(CONF_ENERGY_SENSOR) or None,
                 },
             )
 
@@ -169,14 +165,8 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({
                 vol.Required(CONF_VAT_MODE, default=VAT_MODE_INC): vol.In(VAT_MODES),
                 vol.Optional(CONF_BEARER_TOKEN): str,
-                vol.Optional(CONF_POWER_SENSOR): selector.EntitySelector(
+                vol.Optional(CONF_ENERGY_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
-                ),
-                vol.Optional(CONF_POWER_SENSOR_UNIT, default=POWER_UNIT_W): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=POWER_UNITS,
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
                 ),
             }),
             errors={},
@@ -184,7 +174,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class EltariffOptionsFlow(config_entries.OptionsFlow):
-    """Options flow — allows reconfiguring VAT mode, bearer token, and power meter sensor."""
+    """Options flow — allows reconfiguring VAT mode, bearer token, and energy sensor."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._entry = config_entry
@@ -198,8 +188,7 @@ class EltariffOptionsFlow(config_entries.OptionsFlow):
                 data={
                     CONF_VAT_MODE: user_input[CONF_VAT_MODE],
                     CONF_BEARER_TOKEN: user_input.get(CONF_BEARER_TOKEN) or None,
-                    CONF_POWER_SENSOR: user_input.get(CONF_POWER_SENSOR) or None,
-                    CONF_POWER_SENSOR_UNIT: user_input.get(CONF_POWER_SENSOR_UNIT, POWER_UNIT_W),
+                    CONF_ENERGY_SENSOR: user_input.get(CONF_ENERGY_SENSOR) or None,
                 },
             )
 
@@ -213,27 +202,16 @@ class EltariffOptionsFlow(config_entries.OptionsFlow):
             or ""
         )
         current_entity = (
-            self._entry.options.get(CONF_POWER_SENSOR)
-            or self._entry.data.get(CONF_POWER_SENSOR)
+            self._entry.options.get(CONF_ENERGY_SENSOR)
+            or self._entry.data.get(CONF_ENERGY_SENSOR)
             or ""
-        )
-        current_unit = (
-            self._entry.options.get(CONF_POWER_SENSOR_UNIT)
-            or self._entry.data.get(CONF_POWER_SENSOR_UNIT)
-            or POWER_UNIT_W
         )
 
         schema = vol.Schema({
             vol.Required(CONF_VAT_MODE): vol.In(VAT_MODES),
             vol.Optional(CONF_BEARER_TOKEN): str,
-            vol.Optional(CONF_POWER_SENSOR): selector.EntitySelector(
+            vol.Optional(CONF_ENERGY_SENSOR): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Optional(CONF_POWER_SENSOR_UNIT): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=POWER_UNITS,
-                    mode=selector.SelectSelectorMode.LIST,
-                )
             ),
         })
 
@@ -244,8 +222,7 @@ class EltariffOptionsFlow(config_entries.OptionsFlow):
                 {
                     CONF_VAT_MODE: current_vat,
                     CONF_BEARER_TOKEN: current_token,
-                    CONF_POWER_SENSOR: current_entity,
-                    CONF_POWER_SENSOR_UNIT: current_unit,
+                    CONF_ENERGY_SENSOR: current_entity,
                 },
             ),
             errors={},
