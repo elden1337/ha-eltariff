@@ -6,8 +6,10 @@ from datetime import date
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from ..const import DOMAIN
 from ..coordinator import EltariffCoordinator
 from ..coordinator_data import EltariffCoordinatorData
 
@@ -24,6 +26,13 @@ class EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_{unique_suffix}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name=self._entry.title,
+        )
 
     @property
     def _data(self) -> EltariffCoordinatorData:
