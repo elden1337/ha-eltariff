@@ -19,6 +19,20 @@ KNOWN_DSOS: dict[str, dict[str, str]] = {
         "name": "Tekniska Verken",
         "base_url": "https://api.tekniskaverken.net/subscription/public/v0",
     },
+    "norrtalje_energi": {
+        "name": "Norrtälje Energi AB",
+        "base_url": "https://www.norrtaljeenergi.se/api",
+    },
+    "skanska_energi": {
+        "name": "Skånska Energi Nät AB",
+        # /tariffs is part of the base path for this DSO's API
+        "base_url": "https://apim.kraftringen.se/customer/SKN/tariffs",
+    },
+    "kraftringen_nat": {
+        "name": "Kraftringen Nät AB",
+        # /tariffs is part of the base path for this DSO's API
+        "base_url": "https://apim.kraftringen.se/customer/tariffs",
+    },
     "custom": {
         "name": "Custom URL",
         "base_url": "",

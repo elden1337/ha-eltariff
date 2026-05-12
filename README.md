@@ -8,8 +8,11 @@ A Home Assistant custom integration that exposes Swedish DSO (Distribution Syste
 |-----|-----|
 | Göteborg Energi Nät AB | `goteborg_energi` |
 | Tekniska Verken | `tekniska_verken` |
+| Norrtälje Energi AB | `norrtalje_energi` |
+| Skånska Energi Nät AB | `skanska_energi` |
+| Kraftringen Nät AB | `kraftringen_nat` |
 
-Any DSO that implements the RI-SE Grid Tariff API v0.3.x can also be connected via the "Custom URL" option in the configuration flow.
+Any DSO that implements the RI-SE Grid Tariff API can also be connected via the "Custom URL" option in the configuration flow.
 
 ## Installation
 
@@ -27,21 +30,21 @@ The setup flow has three steps:
 
 ## Sensors
 
-All entity IDs follow the pattern `sensor.eltariff_<name>` or `binary_sensor.eltariff_<name>`.
+Entity IDs are prefixed with the device name derived from your config entry (e.g. `sensor.goteborg_energi_nat_ab_sommartid_lag_active_power_band`). All entities for a given config entry are grouped under one device in the HA device registry.
 
 | Entity | Unit | Description |
 |--------|------|-------------|
-| `sensor.eltariff_active_power_price` | SEK/kW | Price of the currently active power (effect) component |
-| `sensor.eltariff_active_power_band` | — | Reference label of the active power band (e.g. `high`, `low`) |
-| `sensor.eltariff_energy_price_total` | SEK/kWh | Sum of all active energy price components |
-| `sensor.eltariff_energy_transfer_price` | SEK/kWh | The main energy transfer component (reference `main`) |
-| `sensor.eltariff_energy_tax` | SEK/kWh | Energy tax component (reference `tax`) |
-| `sensor.eltariff_fixed_price_annual` | SEK/year | Sum of all active fixed-price components |
-| `sensor.eltariff_peaks_used_for_average` | peaks | Number of monthly peak hours used to calculate the effect tariff |
-| `sensor.eltariff_next_tariff_transition` | timestamp | Next datetime when the active tariff band changes |
-| `binary_sensor.eltariff_high_tariff_active` | — | `on` when a peak-priced power component is active |
+| `…active_power_price` | SEK/kW | Price of the currently active power (effect) component |
+| `…active_power_band` | — | Reference label of the active power band (e.g. `high`, `low`) |
+| `…energy_price_total` | SEK/kWh | Sum of all active energy price components |
+| `…energy_transfer_price` | SEK/kWh | The main energy transfer component (reference `main`) |
+| `…energy_tax` | SEK/kWh | Energy tax component (reference `tax`) |
+| `…fixed_price_annual` | SEK/year | Sum of all active fixed-price components |
+| `…peaks_used_for_average` | peaks | Number of monthly peak hours used to calculate the effect tariff |
+| `…next_tariff_transition` | timestamp | Next datetime when the active tariff band changes |
+| `…high_tariff_active` | — | `on` when a peak-priced power component is active |
 
-All sensors also expose a `today_schedule` state attribute — a list of hourly slots for the current day, each with `start`, `end`, `band`, and `price_inc_vat`.
+Each sensor exposes only the state attributes relevant to it. The `today_schedule` attribute (hourly slots with `start`, `end`, `band`, and `price_inc_vat`) is available on `energy_price_total`, `energy_transfer_price`, and `next_tariff_transition`.
 
 ## Using sensors in automations
 
@@ -62,11 +65,11 @@ automation:
 
 ### Pass today's schedule to advanced calculations and other integrations
 
-The `today_schedule` attribute on any sensor (e.g. `sensor.eltariff_active_power_band`) can be read in a template or passed to an automation that controls climate equipment:
+The `today_schedule` attribute on `sensor.…energy_price_total` (or `…energy_transfer_price` / `…next_tariff_transition`) can be read in a template or passed to an automation that controls climate equipment:
 
 ```yaml
 - variables:
-    schedule: "{{ state_attr('sensor.eltariff_active_power_band', 'today_schedule') }}"
+    schedule: "{{ state_attr('sensor.my_dso_my_tariff_energy_price_total', 'today_schedule') }}"
 ```
 
 ## The 3-highest-hours peak rule (effekttariff)
