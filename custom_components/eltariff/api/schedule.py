@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from .models import (
     ActivePeriod,
@@ -126,44 +126,60 @@ def resolve_active_components(
     )
 
 
+def _component_ids(snap: ActiveTariffSnapshot) -> frozenset[str]:
+    return frozenset(
+        c.id
+        for c in (
+            snap.active_power_components
+            + snap.active_energy_components
+            + snap.active_fixed_components
+        )
+    )
+
+
+def _candidate_times_of_day(tariff: Tariff) -> list[time]:
+    """All time-of-day boundaries declared in the tariff, plus midnight."""
+    times: set[time] = {time(0, 0)}
+    for group in (tariff.power_price, tariff.energy_price, tariff.fixed_price):
+        if group is None:
+            continue
+        for component in group.components:
+            for rp in component.recurring_periods:
+                for ap in rp.active_periods:
+                    times.add(ap.from_including)
+                    # to_excluding == midnight when from_including != midnight means
+                    # end-of-day sentinel — midnight is already in the set.
+                    if ap.to_excluding != time(0, 0):
+                        times.add(ap.to_excluding)
+    return sorted(times)
+
+
 def next_transition_at(
     tariff: Tariff,
     collection: TariffCollection,
     after: datetime,
-    horizon: timedelta = timedelta(hours=48),
+    horizon: timedelta = timedelta(days=400),
 ) -> datetime | None:
     """Return the next datetime after *after* when the active component set changes.
 
-    Scans minute-by-minute within *horizon*. Intentionally simple — tariff data
-    changes infrequently, so this runs only once per snapshot update.
+    Derives candidate transition instants directly from the tariff structure
+    (component valid-period date boundaries + active-period time-of-day boundaries),
+    then checks only those O(days × few) candidates instead of scanning every minute.
     """
-    current = resolve_active_components(tariff, collection, after)
-    current_ids = {
-        c.id
-        for c in (
-            current.active_power_components
-            + current.active_energy_components
-            + current.active_fixed_components
-        )
-    }
-
-    # Advance to the start of the next minute for clean boundaries.
-    t = after.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    current_ids = _component_ids(resolve_active_components(tariff, collection, after))
     end = after + horizon
+    tz = after.tzinfo
+    candidate_times = _candidate_times_of_day(tariff)
 
-    while t <= end:
-        snap = resolve_active_components(tariff, collection, t)
-        ids = {
-            c.id
-            for c in (
-                snap.active_power_components
-                + snap.active_energy_components
-                + snap.active_fixed_components
-            )
-        }
-        if ids != current_ids:
-            return t
-        t += timedelta(minutes=1)
+    d = after.date()
+    while d <= end.date():
+        for t in candidate_times:
+            dt = datetime(d.year, d.month, d.day, t.hour, t.minute, tzinfo=tz)
+            if dt <= after or dt > end:
+                continue
+            if _component_ids(resolve_active_components(tariff, collection, dt)) != current_ids:
+                return dt
+        d += timedelta(days=1)
 
     return None
 
