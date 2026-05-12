@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -21,6 +20,7 @@ from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,
     CONF_TARIFF_ID,
+    CONF_TARIFF_NAME,
     DOMAIN,
     SNAPSHOT_REFRESH_INTERVAL_SECONDS,
 )
@@ -63,6 +63,15 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
     def tariff_id(self) -> str:
         return self._config_entry.data[CONF_TARIFF_ID]
 
+    @property
+    def _configured_tariff_name(self) -> str | None:
+        tariff_name = self._config_entry.data.get(CONF_TARIFF_NAME)
+        if tariff_name:
+            return tariff_name
+        if " — " in self._config_entry.title:
+            return self._config_entry.title.split(" — ", 1)[1].strip()
+        return None
+
     def _build_client(self) -> TariffApiClient:
         session = async_get_clientsession(self.hass)
         return TariffApiClient(
@@ -97,14 +106,36 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             except TariffApiError as exc:
                 raise UpdateFailed(f"API error fetching /tariffs: {exc}") from exc
 
+        now = datetime.now(tz=UTC)
         collection = self._cached_collection
         tariff = collection.get_tariff(self.tariff_id)
         if tariff is None:
-            raise UpdateFailed(
-                f"Configured tariff {self.tariff_id!r} not found in API response"
+            tariff_name = self._configured_tariff_name
+            if tariff_name:
+                tariff = collection.find_tariff_by_name(tariff_name, at=now)
+
+            if tariff is None:
+                raise UpdateFailed(
+                    f"Configured tariff {self.tariff_id!r} not found in API response"
+                )
+
+            _LOGGER.warning(
+                (
+                    "Configured tariff id %s was not found; auto-switching to %s (%s)"
+                ),
+                self.tariff_id,
+                tariff.id,
+                tariff.name,
+            )
+            self.hass.config_entries.async_update_entry(
+                self._config_entry,
+                data={
+                    **self._config_entry.data,
+                    CONF_TARIFF_ID: tariff.id,
+                    CONF_TARIFF_NAME: tariff.name,
+                },
             )
 
-        now = datetime.now(tz=timezone.utc)
         snapshot = resolve_active_components(tariff, collection, now)
 
         if snapshot.parse_warnings:

@@ -5,6 +5,7 @@ DEFAULT_BASE_URL = "https://api.goteborgenergi.cloud/gridtariff/v0"
 
 CONF_BASE_URL = "base_url"
 CONF_TARIFF_ID = "tariff_id"
+CONF_TARIFF_NAME = "tariff_name"
 CONF_VAT_MODE = "vat_mode"
 CONF_BEARER_TOKEN = "bearer_token"
 CONF_DSO_KEY = "dso_key"

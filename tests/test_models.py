@@ -1,11 +1,11 @@
 """Basic smoke tests for model parsing."""
 import json
-from datetime import datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 
-from custom_components.eltariff.api.models import TariffCollection
+from custom_components.eltariff.api.models import Tariff, TariffCollection, ValidPeriod
 
 SAMPLES = Path(__file__).parent.parent / "samples"
 
@@ -36,3 +36,29 @@ def test_all_components_have_price(goteborg_collection: TariffCollection) -> Non
 def test_calendar_pattern_types(goteborg_collection: TariffCollection) -> None:
     types = {p.pattern_type for p in goteborg_collection.calendar_patterns}
     assert len(types) > 0
+
+
+def test_find_tariff_by_name_prefers_active_valid_period() -> None:
+    old_tariff = Tariff(
+        id="old-id",
+        name="Villa",
+        product="P",
+        company_name="Grid AB",
+        valid_period=ValidPeriod(from_including=date(2024, 1, 1), to_excluding=date(2025, 1, 1)),
+    )
+    current_tariff = Tariff(
+        id="new-id",
+        name="Villa",
+        product="P",
+        company_name="Grid AB",
+        valid_period=ValidPeriod(from_including=date(2025, 1, 1), to_excluding=None),
+    )
+    collection = TariffCollection(tariffs=[old_tariff, current_tariff], calendar_patterns=[])
+
+    selected = collection.find_tariff_by_name(
+        "Villa",
+        at=datetime(2025, 5, 1, 12, 0, tzinfo=UTC),
+    )
+
+    assert selected is not None
+    assert selected.id == "new-id"
