@@ -135,15 +135,11 @@ class PeakTracker:
         """Clear all peaks (new billing period)."""
         self._peaks.clear()
 
-    def restore(self, records: list[dict]) -> None:
-        """Restore peaks from serialised dicts."""
+    def restore(self, records: list[PeakRecord]) -> None:
+        """Restore peaks from a list of PeakRecord instances."""
         self._peaks.clear()
-        for d in records:
-            try:
-                self._peaks.append(PeakRecord.from_dict(d))
-            except (KeyError, ValueError, TypeError):
-                _LOGGER.warning("Skipping malformed peak record: %s", d)
+        self._peaks.extend(records)
 
-    def serialise(self) -> list[dict]:
-        """Return peaks as a list of plain dicts for persistence."""
-        return [p.to_dict() for p in self._peaks]
+    def serialise(self) -> list[PeakRecord]:
+        """Return a snapshot of stored peaks."""
+        return list(self._peaks)

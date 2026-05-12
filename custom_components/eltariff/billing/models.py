@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 
-@dataclass
+@dataclass(frozen=True)
 class PeakRecord:
     """A single recorded peak: timestamp and energy value (kWh for the window)."""
 
@@ -51,7 +51,7 @@ class CostServiceState:
     """
 
     billing_period_start_iso: str | None = None
-    peaks: list[dict] = field(default_factory=list)
+    peaks: list[PeakRecord] = field(default_factory=list)
     current_window_start_iso: str | None = None
     current_window_start_reading: float | None = None
     current_window_peak: float = 0.0
@@ -63,7 +63,7 @@ class CostServiceState:
     def to_dict(self) -> dict:
         return {
             "billing_period_start": self.billing_period_start_iso,
-            "peaks": self.peaks,
+            "peaks": [p.to_dict() for p in self.peaks],
             "window_start": self.current_window_start_iso,
             "window_start_reading": self.current_window_start_reading,
             "window_peak": self.current_window_peak,
@@ -77,7 +77,11 @@ class CostServiceState:
     def from_dict(cls, d: dict) -> CostServiceState:
         return cls(
             billing_period_start_iso=d.get("billing_period_start"),
-            peaks=[p for p in d.get("peaks", []) if isinstance(p, dict)],
+            peaks=[
+                PeakRecord.from_dict(p)
+                for p in d.get("peaks", [])
+                if isinstance(p, dict)
+            ],
             current_window_start_iso=d.get("window_start"),
             current_window_start_reading=d.get("window_start_reading"),
             current_window_peak=float(d.get("window_peak", 0.0)),

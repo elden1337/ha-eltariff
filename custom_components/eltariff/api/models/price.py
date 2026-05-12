@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class Price:
     price_ex_vat: float
     price_inc_vat: float

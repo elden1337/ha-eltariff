@@ -12,7 +12,7 @@ from .spot_price_settings import SpotPriceSettings
 from .valid_period import ValidPeriod
 
 
-@dataclass
+@dataclass(frozen=True)
 class PriceComponent:
     id: str
     reference: str

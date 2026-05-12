@@ -7,7 +7,7 @@ from typing import Any
 from .price_component import PriceComponent
 
 
-@dataclass
+@dataclass(frozen=True)
 class PriceGroup:
     components: list[PriceComponent]
     id: str | None = None

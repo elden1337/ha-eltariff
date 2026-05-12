@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class PeakIdentificationSettings:
     number_of_peaks_for_average: int | None = None
     peak_function: str | None = None

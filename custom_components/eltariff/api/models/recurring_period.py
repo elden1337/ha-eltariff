@@ -7,7 +7,7 @@ from typing import Any
 from .active_period import ActivePeriod
 
 
-@dataclass
+@dataclass(frozen=True)
 class RecurringPeriod:
     active_periods: list[ActivePeriod]
     reference: str | None = None

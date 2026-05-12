@@ -9,7 +9,7 @@ from .price_group import PriceGroup
 from .valid_period import ValidPeriod
 
 
-@dataclass
+@dataclass(frozen=True)
 class Tariff:
     id: str
     name: str

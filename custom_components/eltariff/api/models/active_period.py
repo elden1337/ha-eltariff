@@ -8,7 +8,7 @@ from typing import Any
 from .calendar_pattern_references import CalendarPatternReferences
 
 
-@dataclass
+@dataclass(frozen=True)
 class ActivePeriod:
     """A time-of-day band within a recurring period."""
 

@@ -8,7 +8,7 @@ from typing import Any
 from .calendar_pattern_type import CalendarPatternType
 
 
-@dataclass
+@dataclass(frozen=True)
 class CalendarPattern:
     id: str
     name: str

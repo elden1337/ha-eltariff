@@ -20,7 +20,7 @@ from .iso_duration import (
     period_end,
     period_start,
 )
-from .models import CostBreakdown, CostServiceState
+from .models import CostBreakdown, CostServiceState, PeakRecord
 from .peak_tracker import PeakTracker
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ class CostService:
 
         # Billing period state
         self._billing_period_start: datetime | None = None
-        self._deferred_peaks: list[dict] | None = None
+        self._deferred_peaks: list[PeakRecord] | None = None
 
         # Energy window state
         self._current_window_start: datetime | None = None

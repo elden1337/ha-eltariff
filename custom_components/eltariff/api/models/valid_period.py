@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class ValidPeriod:
     from_including: date
     to_excluding: date | None

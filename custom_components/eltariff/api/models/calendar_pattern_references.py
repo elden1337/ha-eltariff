@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True)
 class CalendarPatternReferences:
     include: list[str]
     exclude: list[str]
