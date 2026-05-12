@@ -3,24 +3,22 @@
 Any import that previously used ``from .api.models import X`` or
 ``from custom_components.eltariff.api.models import X`` will still work.
 """
-from .price import (
-    ComponentType,
-    Price,
-    PriceComponent,
-    PriceGroup,
-)
-from .schedule import (
-    ActivePeriod,
-    CalendarPattern,
-    CalendarPatternReferences,
-    CalendarPatternType,
-    PeakIdentificationSettings,
-    RecurringPeriod,
-    ValidPeriod,
-)
+from .active_period import ActivePeriod
+from .calendar_pattern import CalendarPattern
+from .calendar_pattern_references import CalendarPatternReferences
+from .calendar_pattern_type import CalendarPatternType
+from .component_type import ComponentType
+from .peak_identification_settings import PeakIdentificationSettings
+from .price import Price
+from .price_component import PriceComponent
+from .price_group import PriceGroup
+from .recurring_period import RecurringPeriod
+from .schedule_slot import ScheduleSlot
 from .server import ServerInfo
-from .snapshot import ActiveTariffSnapshot, ScheduleSlot
-from .tariff import Tariff, TariffCollection
+from .snapshot import ActiveTariffSnapshot
+from .tariff import Tariff
+from .tariff_collection import TariffCollection
+from .valid_period import ValidPeriod
 
 __all__ = [
     "ActivePeriod",

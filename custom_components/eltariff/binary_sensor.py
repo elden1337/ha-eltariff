@@ -9,7 +9,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api.models import ComponentType
 from .const import DOMAIN
-from .coordinator import EltariffCoordinator, EltariffCoordinatorData
+from .coordinator import EltariffCoordinator
+from .coordinator_data import EltariffCoordinatorData
 
 
 async def async_setup_entry(
