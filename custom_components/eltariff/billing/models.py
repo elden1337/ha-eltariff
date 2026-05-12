@@ -1,4 +1,5 @@
 """Data models for the billing / cost-tracking layer."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -77,11 +78,7 @@ class CostServiceState:
     def from_dict(cls, d: dict) -> CostServiceState:
         return cls(
             billing_period_start_iso=d.get("billing_period_start"),
-            peaks=[
-                PeakRecord.from_dict(p)
-                for p in d.get("peaks", [])
-                if isinstance(p, dict)
-            ],
+            peaks=[PeakRecord.from_dict(p) for p in d.get("peaks", []) if isinstance(p, dict)],
             current_window_start_iso=d.get("window_start"),
             current_window_start_reading=d.get("window_start_reading"),
             current_window_peak=float(d.get("window_peak", 0.0)),

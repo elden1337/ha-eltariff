@@ -1,4 +1,5 @@
 """Unit tests for all API model dataclasses."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time
@@ -27,6 +28,7 @@ from custom_components.eltariff.api.models import (
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
 def _vp(from_: str = "2025-01-01", to: str | None = "2026-01-01") -> ValidPeriod:
     return ValidPeriod(
         from_including=date.fromisoformat(from_),
@@ -40,19 +42,27 @@ def _price(value: float = 1.0, currency: str = "SEK") -> Price:
 
 def _comp(id_: str, ref: str, ctype: ComponentType = ComponentType.PEAK) -> PriceComponent:
     return PriceComponent(
-        id=id_, reference=ref, component_type=ctype,
-        description="", valid_period=_vp(), price=_price(),
+        id=id_,
+        reference=ref,
+        component_type=ctype,
+        description="",
+        valid_period=_vp(),
+        price=_price(),
     )
 
 
 def _tariff(id_: str = "t1", name: str = "Test", vp: ValidPeriod | None = None) -> Tariff:
     return Tariff(
-        id=id_, name=name, product="P", company_name="AB",
+        id=id_,
+        name=name,
+        product="P",
+        company_name="AB",
         valid_period=vp or _vp(),
     )
 
 
 # ── Price ──────────────────────────────────────────────────────────────────────
+
 
 class TestPrice:
     def test_from_dict_basic(self) -> None:
@@ -79,6 +89,7 @@ class TestPrice:
 
 
 # ── ValidPeriod ────────────────────────────────────────────────────────────────
+
 
 class TestValidPeriod:
     def test_from_dict_with_end(self) -> None:
@@ -129,6 +140,7 @@ class TestValidPeriod:
 
 
 # ── ActivePeriod ───────────────────────────────────────────────────────────────
+
 
 class TestActivePeriodTimeMatches:
     def _dt(self, hour: int, minute: int = 0, second: int = 0) -> datetime:
@@ -215,6 +227,7 @@ class TestActivePeriodTimeMatches:
 
 # ── CalendarPattern ────────────────────────────────────────────────────────────
 
+
 class TestCalendarPatternFromDict:
     def test_explicit_weekdays_type(self) -> None:
         p = CalendarPattern.from_dict({"id": "wd", "name": "Weekdays", "type": "weekdays"})
@@ -225,10 +238,14 @@ class TestCalendarPatternFromDict:
         assert p.pattern_type == CalendarPatternType.WEEKENDS
 
     def test_explicit_holidays_type_with_dates(self) -> None:
-        p = CalendarPattern.from_dict({
-            "id": "hol", "name": "Holidays", "type": "holidays",
-            "dates": ["2025-01-01", "2025-06-06"],
-        })
+        p = CalendarPattern.from_dict(
+            {
+                "id": "hol",
+                "name": "Holidays",
+                "type": "holidays",
+                "dates": ["2025-01-01", "2025-06-06"],
+            }
+        )
         assert p.pattern_type == CalendarPatternType.HOLIDAYS
         assert date(2025, 1, 1) in p.dates
         assert date(2025, 6, 6) in p.dates
@@ -264,11 +281,15 @@ class TestCalendarPatternFromDict:
         assert p.id == "my-ref"
 
     def test_id_takes_precedence_over_reference(self) -> None:
-        p = CalendarPattern.from_dict({"id": "real-id", "reference": "old-ref", "name": "R", "type": "weekdays"})
+        p = CalendarPattern.from_dict(
+            {"id": "real-id", "reference": "old-ref", "name": "R", "type": "weekdays"}
+        )
         assert p.id == "real-id"
 
     def test_frequency_parsed(self) -> None:
-        p = CalendarPattern.from_dict({"id": "p", "name": "P", "type": "weekdays", "frequency": "PT15M"})
+        p = CalendarPattern.from_dict(
+            {"id": "p", "name": "P", "type": "weekdays", "frequency": "PT15M"}
+        )
         assert p.frequency == "PT15M"
 
     def test_no_frequency_is_none(self) -> None:
@@ -277,6 +298,7 @@ class TestCalendarPatternFromDict:
 
 
 # ── PeakIdentificationSettings ─────────────────────────────────────────────────
+
 
 class TestPeakIdentificationSettings:
     def test_from_dict_all_fields(self) -> None:
@@ -310,6 +332,7 @@ class TestPeakIdentificationSettings:
 
 
 # ── ServerInfo ─────────────────────────────────────────────────────────────────
+
 
 class TestServerInfo:
     def test_from_dict_with_timestamp(self) -> None:
@@ -350,7 +373,9 @@ _MINIMAL_TARIFF_DICT: dict = {
 
 class TestTariffCollectionFromDict:
     def test_tariffs_list(self) -> None:
-        coll = TariffCollection.from_dict({"tariffs": [_MINIMAL_TARIFF_DICT], "calendarPatterns": []})
+        coll = TariffCollection.from_dict(
+            {"tariffs": [_MINIMAL_TARIFF_DICT], "calendarPatterns": []}
+        )
         assert len(coll.tariffs) == 1
         assert coll.tariffs[0].id == "t1"
 
@@ -463,6 +488,7 @@ class TestFindTariffByName:
 
 # ── ActiveTariffSnapshot ───────────────────────────────────────────────────────
 
+
 class TestActiveTariffSnapshot:
     def _snap(self, power=None, energy=None, fixed=None, warnings=None) -> ActiveTariffSnapshot:
         return ActiveTariffSnapshot(
@@ -491,8 +517,11 @@ class TestActiveTariffSnapshot:
 
     def test_total_energy_price_inc_vat_single_component(self) -> None:
         comp = PriceComponent(
-            id="e1", reference="main", component_type=ComponentType.ENERGY,
-            description="", valid_period=_vp(),
+            id="e1",
+            reference="main",
+            component_type=ComponentType.ENERGY,
+            description="",
+            valid_period=_vp(),
             price=Price(price_ex_vat=0.5, price_inc_vat=0.625, currency="SEK"),
         )
         snap = self._snap(energy=[comp])
@@ -500,13 +529,19 @@ class TestActiveTariffSnapshot:
 
     def test_total_energy_price_sums_multiple_components(self) -> None:
         transfer = PriceComponent(
-            id="main", reference="main", component_type=ComponentType.ENERGY,
-            description="", valid_period=_vp(),
+            id="main",
+            reference="main",
+            component_type=ComponentType.ENERGY,
+            description="",
+            valid_period=_vp(),
             price=Price(price_ex_vat=0.5, price_inc_vat=0.625, currency="SEK"),
         )
         tax = PriceComponent(
-            id="tax", reference="tax", component_type=ComponentType.ENERGY,
-            description="", valid_period=_vp(),
+            id="tax",
+            reference="tax",
+            component_type=ComponentType.ENERGY,
+            description="",
+            valid_period=_vp(),
             price=Price(price_ex_vat=0.392, price_inc_vat=0.49, currency="SEK"),
         )
         snap = self._snap(energy=[transfer, tax])
@@ -530,15 +565,21 @@ class TestActiveTariffSnapshot:
 
 # ── ScheduleSlot ───────────────────────────────────────────────────────────────
 
+
 class TestScheduleSlot:
     def test_slot_fields(self) -> None:
         import zoneinfo
+
         tz = zoneinfo.ZoneInfo("Europe/Stockholm")
         start = datetime(2025, 6, 2, 7, 0, tzinfo=tz)
         end = datetime(2025, 6, 2, 8, 0, tzinfo=tz)
         slot = ScheduleSlot(
-            start=start, end=end,
-            band_reference="high", price_inc_vat=2.5, price_ex_vat=2.0, currency="SEK",
+            start=start,
+            end=end,
+            band_reference="high",
+            price_inc_vat=2.5,
+            price_ex_vat=2.0,
+            currency="SEK",
         )
         assert slot.start == start
         assert slot.end == end
@@ -549,6 +590,7 @@ class TestScheduleSlot:
 
 
 # ── Tariff.from_dict ───────────────────────────────────────────────────────────
+
 
 class TestTariffFromDict:
     _BASE = {
@@ -586,8 +628,14 @@ class TestTariffFromDict:
         assert t.last_updated.year == 2025
 
     def test_optional_string_fields(self) -> None:
-        d = {**self._BASE, "description": "desc", "timeZone": "Europe/Stockholm",
-             "companyOrgNo": "556000-0000", "direction": "consumption", "billingPeriod": "P1M"}
+        d = {
+            **self._BASE,
+            "description": "desc",
+            "timeZone": "Europe/Stockholm",
+            "companyOrgNo": "556000-0000",
+            "direction": "consumption",
+            "billingPeriod": "P1M",
+        }
         t = Tariff.from_dict(d)
         assert t.description == "desc"
         assert t.time_zone == "Europe/Stockholm"
@@ -597,12 +645,16 @@ class TestTariffFromDict:
         d = {
             **self._BASE,
             "fixedPrice": {
-                "components": [{
-                    "id": "f1", "reference": "annual", "type": "fixed",
-                    "description": "Fixed fee",
-                    "validPeriod": {"fromIncluding": "2025-01-01"},
-                    "price": {"priceExVat": 400.0, "priceIncVat": 500.0, "currency": "SEK"},
-                }]
+                "components": [
+                    {
+                        "id": "f1",
+                        "reference": "annual",
+                        "type": "fixed",
+                        "description": "Fixed fee",
+                        "validPeriod": {"fromIncluding": "2025-01-01"},
+                        "price": {"priceExVat": 400.0, "priceIncVat": 500.0, "currency": "SEK"},
+                    }
+                ]
             },
         }
         t = Tariff.from_dict(d)
@@ -612,6 +664,7 @@ class TestTariffFromDict:
 
 
 # ── CalendarPatternReferences ──────────────────────────────────────────────────
+
 
 class TestCalendarPatternReferences:
     def test_from_dict_with_both_lists(self) -> None:
@@ -633,6 +686,7 @@ class TestCalendarPatternReferences:
 
 
 # ── RecurringPeriod ────────────────────────────────────────────────────────────
+
 
 class TestRecurringPeriod:
     def test_from_dict_with_active_periods(self) -> None:
@@ -658,9 +712,12 @@ class TestRecurringPeriod:
 
 # ── PriceGroup ─────────────────────────────────────────────────────────────────
 
+
 class TestPriceGroup:
     _COMP_DICT = {
-        "id": "c1", "reference": "main", "type": "energy",
+        "id": "c1",
+        "reference": "main",
+        "type": "energy",
         "description": "Transfer",
         "validPeriod": {"fromIncluding": "2025-01-01"},
         "price": {"priceExVat": 0.5, "priceIncVat": 0.625, "currency": "SEK"},
@@ -677,8 +734,15 @@ class TestPriceGroup:
         assert pg.components == []
 
     def test_from_dict_optional_fields(self) -> None:
-        pg = PriceGroup.from_dict({"id": "pg1", "name": "Energy", "description": "desc",
-                                    "costFunction": "sum", "components": []})
+        pg = PriceGroup.from_dict(
+            {
+                "id": "pg1",
+                "name": "Energy",
+                "description": "desc",
+                "costFunction": "sum",
+                "components": [],
+            }
+        )
         assert pg.id == "pg1"
         assert pg.name == "Energy"
         assert pg.cost_function == "sum"

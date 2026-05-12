@@ -1,4 +1,5 @@
 """Config flow for the eltariff integration."""
+
 from __future__ import annotations
 
 import logging
@@ -40,9 +41,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> EltariffOptionsFlow:
         return EltariffOptionsFlow(config_entry)
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -78,9 +77,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_tariff(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_tariff(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -115,7 +112,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
         now = datetime.now(tz=UTC)
         sorted_tariffs = sorted(
             collection.tariffs,
-            key=lambda t: (0 if t.valid_period.contains(now) else 1),
+            key=lambda t: 0 if t.valid_period.contains(now) else 1,
         )
 
         self._available_tariffs = [
@@ -140,9 +137,11 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="tariff",
-            data_schema=vol.Schema({
-                vol.Required(CONF_TARIFF_ID): vol.In(tariff_options),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TARIFF_ID): vol.In(tariff_options),
+                }
+            ),
             errors=errors,
         )
 
@@ -172,13 +171,15 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="options",
-            data_schema=vol.Schema({
-                vol.Required(CONF_VAT_MODE, default=VAT_MODE_INC): vol.In(VAT_MODES),
-                vol.Optional(CONF_BEARER_TOKEN): str,
-                vol.Optional(CONF_ENERGY_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
-                ),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_VAT_MODE, default=VAT_MODE_INC): vol.In(VAT_MODES),
+                    vol.Optional(CONF_BEARER_TOKEN): str,
+                    vol.Optional(CONF_ENERGY_SENSOR): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="sensor")
+                    ),
+                }
+            ),
             errors={},
         )
 
@@ -189,9 +190,7 @@ class EltariffOptionsFlow(config_entries.OptionsFlow):
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(
                 title="",
@@ -202,9 +201,8 @@ class EltariffOptionsFlow(config_entries.OptionsFlow):
                 },
             )
 
-        current_vat = (
-            self._entry.options.get(CONF_VAT_MODE)
-            or self._entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
+        current_vat = self._entry.options.get(CONF_VAT_MODE) or self._entry.data.get(
+            CONF_VAT_MODE, VAT_MODE_INC
         )
         current_token = (
             self._entry.options.get(CONF_BEARER_TOKEN)
@@ -217,13 +215,15 @@ class EltariffOptionsFlow(config_entries.OptionsFlow):
             or ""
         )
 
-        schema = vol.Schema({
-            vol.Required(CONF_VAT_MODE): vol.In(VAT_MODES),
-            vol.Optional(CONF_BEARER_TOKEN): str,
-            vol.Optional(CONF_ENERGY_SENSOR): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_VAT_MODE): vol.In(VAT_MODES),
+                vol.Optional(CONF_BEARER_TOKEN): str,
+                vol.Optional(CONF_ENERGY_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="init",

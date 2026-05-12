@@ -4,6 +4,7 @@ Replaces the former PowerTracker.  The tracked sensor should provide total
 energy in kWh (e.g. a Riemann Sum integration helper or a native energy
 meter).  State changes are forwarded to registered callbacks.
 """
+
 from __future__ import annotations
 
 import logging
@@ -76,6 +77,4 @@ class EnergyTracker:
             except (ValueError, TypeError):
                 pass
 
-        return async_track_state_change_event(
-            self._hass, [self._entity_id], self._on_state_change
-        )
+        return async_track_state_change_event(self._hass, [self._entity_id], self._on_state_change)

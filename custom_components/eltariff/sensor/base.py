@@ -1,4 +1,5 @@
 """Base sensor class for the eltariff integration."""
+
 from __future__ import annotations
 
 import zoneinfo
@@ -58,13 +59,9 @@ class EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
         }
 
     def _today_schedule_attrs(self) -> dict:
-        from ..api.schedule import build_day_schedule
-
         tz = zoneinfo.ZoneInfo(self._data.info.timezone or "Europe/Stockholm")
-        tariff = self._data.collection.get_tariff(self.coordinator.tariff_id)
-        if tariff is None:
-            return {}
-        slots = build_day_schedule(tariff, self._data.collection, date.today(), tz)
+        today = date.today()
+        slots = self.coordinator.get_cached_day_schedule(self.coordinator.tariff_id, today, tz)
         return {
             "today_schedule": [
                 {

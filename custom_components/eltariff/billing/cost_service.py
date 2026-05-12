@@ -7,6 +7,7 @@ tariff snapshot from the coordinator.  It maintains:
 * Incremental transmission and tax cost accumulation.
 * A billing-period clock that resets everything on period boundaries.
 """
+
 from __future__ import annotations
 
 import logging
@@ -43,6 +44,7 @@ class CostService:
     """
 
     def __init__(self) -> None:
+        self._vat_mode: str = "inc_vat"
         self._billing_duration: ParsedDuration = _DEFAULT_BILLING_PERIOD
         self._peak_duration: ParsedDuration = _DEFAULT_PEAK_DURATION
         self._id_period: ParsedDuration = _DEFAULT_IDENTIFICATION_PERIOD
@@ -202,9 +204,7 @@ class CostService:
             total_energy_kwh=self._total_energy_kwh,
             billing_period_start=self._billing_period_start,
             billing_period_end=(
-                period_end(now, self._billing_duration)
-                if self._billing_period_start
-                else None
+                period_end(now, self._billing_duration) if self._billing_period_start else None
             ),
             currency=currency,
         )
@@ -217,15 +217,11 @@ class CostService:
         """Return a serialisable dict for RestoreEntity."""
         return CostServiceState(
             billing_period_start_iso=(
-                self._billing_period_start.isoformat()
-                if self._billing_period_start
-                else None
+                self._billing_period_start.isoformat() if self._billing_period_start else None
             ),
             peaks=self._peak_tracker.serialise() if self._peak_tracker else [],
             current_window_start_iso=(
-                self._current_window_start.isoformat()
-                if self._current_window_start
-                else None
+                self._current_window_start.isoformat() if self._current_window_start else None
             ),
             current_window_start_reading=self._current_window_start_reading,
             current_window_peak=self._current_window_peak,
@@ -240,13 +236,9 @@ class CostService:
         state = CostServiceState.from_dict(data)
 
         if state.billing_period_start_iso:
-            self._billing_period_start = datetime.fromisoformat(
-                state.billing_period_start_iso
-            )
+            self._billing_period_start = datetime.fromisoformat(state.billing_period_start_iso)
         if state.current_window_start_iso:
-            self._current_window_start = datetime.fromisoformat(
-                state.current_window_start_iso
-            )
+            self._current_window_start = datetime.fromisoformat(state.current_window_start_iso)
         self._current_window_start_reading = state.current_window_start_reading
         self._current_window_peak = state.current_window_peak
         self._prev_reading = state.prev_reading
@@ -315,19 +307,13 @@ class CostService:
                     self._current_window_start, self._current_window_peak
                 )
 
-    def _energy_rates(
-        self, snapshot: ActiveTariffSnapshot
-    ) -> tuple[float, float]:
+    def _energy_rates(self, snapshot: ActiveTariffSnapshot) -> tuple[float, float]:
         """Extract current transmission and tax rates from the snapshot."""
-        vat_mode = getattr(self, "_vat_mode", "inc_vat")
+        vat_mode = self._vat_mode
         transmission = 0.0
         tax = 0.0
         for comp in snapshot.active_energy_components:
-            price = (
-                comp.price.price_inc_vat
-                if vat_mode == "inc_vat"
-                else comp.price.price_ex_vat
-            )
+            price = comp.price.price_inc_vat if vat_mode == "inc_vat" else comp.price.price_ex_vat
             if comp.reference == "tax":
                 tax += price
             else:
@@ -346,26 +332,18 @@ class CostService:
         if pc is None:
             return 0.0
 
-        vat_mode = getattr(self, "_vat_mode", "inc_vat")
-        price = (
-            pc.price.price_inc_vat if vat_mode == "inc_vat" else pc.price.price_ex_vat
-        )
+        vat_mode = self._vat_mode
+        price = pc.price.price_inc_vat if vat_mode == "inc_vat" else pc.price.price_ex_vat
         return charged * price
 
-    def _compute_fixed_cost(
-        self, snapshot: ActiveTariffSnapshot
-    ) -> float:
+    def _compute_fixed_cost(self, snapshot: ActiveTariffSnapshot) -> float:
         """Return the full fixed cost for the current billing period (lump sum)."""
         if not snapshot.active_fixed_components:
             return 0.0
 
-        vat_mode = getattr(self, "_vat_mode", "inc_vat")
+        vat_mode = self._vat_mode
         annual_total = sum(
-            (
-                c.price.price_inc_vat
-                if vat_mode == "inc_vat"
-                else c.price.price_ex_vat
-            )
+            (c.price.price_inc_vat if vat_mode == "inc_vat" else c.price.price_ex_vat)
             for c in snapshot.active_fixed_components
         )
 
@@ -394,7 +372,7 @@ class CostService:
 
     @property
     def vat_mode(self) -> str:
-        return getattr(self, "_vat_mode", "inc_vat")
+        return self._vat_mode
 
     @vat_mode.setter
     def vat_mode(self, value: str) -> None:

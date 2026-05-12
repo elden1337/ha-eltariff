@@ -4,6 +4,7 @@ Covers: _calendar_pattern_matches, _active_period_matches, _component_active,
 resolve_active_components (energy/fixed, duplicate warnings, no-match warning,
 expired components), next_transition_at, build_day_schedule.
 """
+
 from __future__ import annotations
 
 import zoneinfo
@@ -38,6 +39,7 @@ from custom_components.eltariff.api.schedule import (
 
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
+
 def _price(value: float = 1.0, currency: str = "SEK") -> Price:
     return Price(price_ex_vat=value * 0.8, price_inc_vat=value, currency=currency)
 
@@ -46,12 +48,18 @@ def _vp(from_: date = date(2025, 1, 1), to: date | None = date(2026, 1, 1)) -> V
     return ValidPeriod(from_including=from_, to_excluding=to)
 
 
-def _refs(include: list[str] | None = None, exclude: list[str] | None = None) -> CalendarPatternReferences:
+def _refs(
+    include: list[str] | None = None, exclude: list[str] | None = None
+) -> CalendarPatternReferences:
     return CalendarPatternReferences(include=include or [], exclude=exclude or [])
 
 
-def _ap(start: time, end: time, include: list[str] | None = None, exclude: list[str] | None = None) -> ActivePeriod:
-    return ActivePeriod(from_including=start, to_excluding=end, calendar_pattern_references=_refs(include, exclude))
+def _ap(
+    start: time, end: time, include: list[str] | None = None, exclude: list[str] | None = None
+) -> ActivePeriod:
+    return ActivePeriod(
+        from_including=start, to_excluding=end, calendar_pattern_references=_refs(include, exclude)
+    )
 
 
 def _weekday_pat(id_: str = "wd") -> CalendarPattern:
@@ -63,7 +71,9 @@ def _weekend_pat(id_: str = "we") -> CalendarPattern:
 
 
 def _holiday_pat(dates: list[date], id_: str = "hol") -> CalendarPattern:
-    return CalendarPattern(id=id_, name="Holidays", pattern_type=CalendarPatternType.HOLIDAYS, dates=dates)
+    return CalendarPattern(
+        id=id_, name="Holidays", pattern_type=CalendarPatternType.HOLIDAYS, dates=dates
+    )
 
 
 def _component(
@@ -76,9 +86,13 @@ def _component(
 ) -> PriceComponent:
     rps = [RecurringPeriod(active_periods=active_periods)] if active_periods else []
     return PriceComponent(
-        id=id_, reference=ref, component_type=ctype,
-        description="", valid_period=vp or _vp(),
-        price=_price(price_val), recurring_periods=rps,
+        id=id_,
+        reference=ref,
+        component_type=ctype,
+        description="",
+        valid_period=vp or _vp(),
+        price=_price(price_val),
+        recurring_periods=rps,
     )
 
 
@@ -88,17 +102,25 @@ def _tariff(
     fixed_price: PriceGroup | None = None,
 ) -> Tariff:
     return Tariff(
-        id="t1", name="Test", product="P", company_name="AB",
-        valid_period=_vp(), power_price=power_price,
-        energy_price=energy_price, fixed_price=fixed_price,
+        id="t1",
+        name="Test",
+        product="P",
+        company_name="AB",
+        valid_period=_vp(),
+        power_price=power_price,
+        energy_price=energy_price,
+        fixed_price=fixed_price,
     )
 
 
-def _collection(patterns: list[CalendarPattern] | None = None, tariff: Tariff | None = None) -> TariffCollection:
+def _collection(
+    patterns: list[CalendarPattern] | None = None, tariff: Tariff | None = None
+) -> TariffCollection:
     return TariffCollection(tariffs=[tariff or _tariff()], calendar_patterns=patterns or [])
 
 
 # ── _calendar_pattern_matches ──────────────────────────────────────────────────
+
 
 class TestCalendarPatternMatches:
     # Weekdays (Mon=1 … Fri=5)
@@ -145,6 +167,7 @@ class TestCalendarPatternMatches:
 
 # ── _active_period_matches ─────────────────────────────────────────────────────
 
+
 class TestActivePeriodMatches:
     def _coll(self, patterns: list[CalendarPattern] | None = None) -> TariffCollection:
         return TariffCollection(tariffs=[], calendar_patterns=patterns or [])
@@ -173,7 +196,9 @@ class TestActivePeriodMatches:
     def test_include_non_matching_day_denies(self) -> None:
         ap = _ap(time(0, 0), time(0, 0), include=["wd"])
         coll = self._coll([_weekday_pat()])
-        assert not _active_period_matches(ap, datetime(2025, 1, 11, 10, tzinfo=UTC), coll)  # Saturday
+        assert not _active_period_matches(
+            ap, datetime(2025, 1, 11, 10, tzinfo=UTC), coll
+        )  # Saturday
 
     def test_unknown_include_id_denies(self) -> None:
         ap = _ap(time(0, 0), time(0, 0), include=["nonexistent"])
@@ -183,7 +208,7 @@ class TestActivePeriodMatches:
         ap = _ap(time(0, 0), time(0, 0), include=["wd", "we"])
         coll = self._coll([_weekday_pat(), _weekend_pat()])
         # Both a weekday and a weekend should be allowed
-        assert _active_period_matches(ap, datetime(2025, 1, 6, 10, tzinfo=UTC), coll)   # Monday
+        assert _active_period_matches(ap, datetime(2025, 1, 6, 10, tzinfo=UTC), coll)  # Monday
         assert _active_period_matches(ap, datetime(2025, 1, 11, 10, tzinfo=UTC), coll)  # Saturday
 
     # exclude list
@@ -207,11 +232,14 @@ class TestActivePeriodMatches:
     def test_full_day_any_time_with_include(self) -> None:
         ap = _ap(time(0, 0), time(0, 0), include=["we"])
         coll = self._coll([_weekend_pat()])
-        assert _active_period_matches(ap, datetime(2025, 1, 11, 0, tzinfo=UTC), coll)   # Saturday midnight
+        assert _active_period_matches(
+            ap, datetime(2025, 1, 11, 0, tzinfo=UTC), coll
+        )  # Saturday midnight
         assert _active_period_matches(ap, datetime(2025, 1, 11, 23, 59, tzinfo=UTC), coll)
 
 
 # ── _component_active ──────────────────────────────────────────────────────────
+
 
 class TestComponentActive:
     def _coll(self) -> TariffCollection:
@@ -219,15 +247,25 @@ class TestComponentActive:
 
     def test_no_recurring_periods_always_active_within_valid_period(self) -> None:
         comp = PriceComponent(
-            id="f1", reference="fee", component_type=ComponentType.FIXED,
-            description="", valid_period=_vp(), price=_price(), recurring_periods=[],
+            id="f1",
+            reference="fee",
+            component_type=ComponentType.FIXED,
+            description="",
+            valid_period=_vp(),
+            price=_price(),
+            recurring_periods=[],
         )
         assert _component_active(comp, datetime(2025, 6, 1, 12, tzinfo=UTC), self._coll())
 
     def test_no_recurring_periods_outside_valid_period_false(self) -> None:
         comp = PriceComponent(
-            id="f1", reference="fee", component_type=ComponentType.FIXED,
-            description="", valid_period=_vp(to=date(2024, 1, 1)), price=_price(), recurring_periods=[],
+            id="f1",
+            reference="fee",
+            component_type=ComponentType.FIXED,
+            description="",
+            valid_period=_vp(to=date(2024, 1, 1)),
+            price=_price(),
+            recurring_periods=[],
         )
         assert not _component_active(comp, datetime(2025, 6, 1, 12, tzinfo=UTC), self._coll())
 
@@ -245,14 +283,19 @@ class TestComponentActive:
         rp1 = RecurringPeriod(active_periods=[_ap(time(7, 0), time(12, 0))])
         rp2 = RecurringPeriod(active_periods=[_ap(time(12, 0), time(20, 0))])
         comp = PriceComponent(
-            id="c1", reference="band", component_type=ComponentType.PEAK,
-            description="", valid_period=_vp(), price=_price(),
+            id="c1",
+            reference="band",
+            component_type=ComponentType.PEAK,
+            description="",
+            valid_period=_vp(),
+            price=_price(),
             recurring_periods=[rp1, rp2],
         )
         assert _component_active(comp, datetime(2025, 6, 1, 15, tzinfo=UTC), self._coll())
 
 
 # ── resolve_active_components ──────────────────────────────────────────────────
+
 
 class TestResolveActiveComponents:
     def test_no_price_groups_returns_empty_snapshot(self) -> None:
@@ -272,8 +315,12 @@ class TestResolveActiveComponents:
         assert [c.reference for c in snap.active_power_components] == ["band_a"]
 
     def test_energy_components_both_active(self) -> None:
-        transfer = _component("main", "main", ComponentType.ENERGY, active_periods=[_ap(time(0, 0), time(0, 0))])
-        tax = _component("tax", "tax", ComponentType.ENERGY, active_periods=[_ap(time(0, 0), time(0, 0))])
+        transfer = _component(
+            "main", "main", ComponentType.ENERGY, active_periods=[_ap(time(0, 0), time(0, 0))]
+        )
+        tax = _component(
+            "tax", "tax", ComponentType.ENERGY, active_periods=[_ap(time(0, 0), time(0, 0))]
+        )
         t = _tariff(energy_price=PriceGroup(components=[transfer, tax]))
         coll = _collection(tariff=t)
         snap = resolve_active_components(t, coll, datetime(2025, 6, 2, 12, tzinfo=UTC))
@@ -282,8 +329,13 @@ class TestResolveActiveComponents:
 
     def test_fixed_component_no_recurring_always_active(self) -> None:
         fixed = PriceComponent(
-            id="fee", reference="annual_fee", component_type=ComponentType.FIXED,
-            description="", valid_period=_vp(), price=_price(500.0), recurring_periods=[],
+            id="fee",
+            reference="annual_fee",
+            component_type=ComponentType.FIXED,
+            description="",
+            valid_period=_vp(),
+            price=_price(500.0),
+            recurring_periods=[],
         )
         t = _tariff(fixed_price=PriceGroup(components=[fixed]))
         coll = _collection(tariff=t)
@@ -292,8 +344,12 @@ class TestResolveActiveComponents:
         assert snap.active_fixed_components[0].reference == "annual_fee"
 
     def test_expired_component_not_active(self) -> None:
-        expired = _component("old", "old_rate", vp=ValidPeriod(date(2020, 1, 1), date(2021, 1, 1)),
-                             active_periods=[_ap(time(0, 0), time(0, 0))])
+        expired = _component(
+            "old",
+            "old_rate",
+            vp=ValidPeriod(date(2020, 1, 1), date(2021, 1, 1)),
+            active_periods=[_ap(time(0, 0), time(0, 0))],
+        )
         t = _tariff(power_price=PriceGroup(components=[expired]))
         coll = _collection(tariff=t)
         snap = resolve_active_components(t, coll, datetime(2025, 6, 2, 12, tzinfo=UTC))
@@ -337,8 +393,9 @@ class TestResolveActiveComponents:
         assert snap.at == at
 
     def test_energy_component_not_active_outside_period(self) -> None:
-        comp = _component("e1", "energy", ComponentType.ENERGY,
-                          active_periods=[_ap(time(7, 0), time(20, 0))])
+        comp = _component(
+            "e1", "energy", ComponentType.ENERGY, active_periods=[_ap(time(7, 0), time(20, 0))]
+        )
         t = _tariff(energy_price=PriceGroup(components=[comp]))
         coll = _collection(tariff=t)
         snap = resolve_active_components(t, coll, datetime(2025, 6, 2, 2, tzinfo=UTC))
@@ -349,12 +406,20 @@ class TestResolveActiveComponents:
         wd_pat = _weekday_pat()
         hol_pat = _holiday_pat([holiday])
 
-        high = _component("high", "high", active_periods=[
-            _ap(time(7, 0), time(20, 0), include=["wd"], exclude=["hol"]),
-        ])
-        low = _component("low", "low", active_periods=[
-            _ap(time(0, 0), time(0, 0), include=["hol"]),
-        ])
+        high = _component(
+            "high",
+            "high",
+            active_periods=[
+                _ap(time(7, 0), time(20, 0), include=["wd"], exclude=["hol"]),
+            ],
+        )
+        low = _component(
+            "low",
+            "low",
+            active_periods=[
+                _ap(time(0, 0), time(0, 0), include=["hol"]),
+            ],
+        )
         t = _tariff(power_price=PriceGroup(components=[high, low]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat, hol_pat])
 
@@ -366,6 +431,7 @@ class TestResolveActiveComponents:
 
 
 # ── next_transition_at ─────────────────────────────────────────────────────────
+
 
 class TestNextTransitionAt:
     def _flat(self) -> tuple[Tariff, TariffCollection]:
@@ -380,11 +446,17 @@ class TestNextTransitionAt:
 
     def test_finds_transition_at_period_boundary(self) -> None:
         wd_pat = _weekday_pat()
-        high = _component("high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])])
-        low = _component("low", "low", active_periods=[
-            _ap(time(0, 0), time(7, 0), include=["wd"]),
-            _ap(time(20, 0), time(0, 0), include=["wd"]),
-        ])
+        high = _component(
+            "high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])]
+        )
+        low = _component(
+            "low",
+            "low",
+            active_periods=[
+                _ap(time(0, 0), time(7, 0), include=["wd"]),
+                _ap(time(20, 0), time(0, 0), include=["wd"]),
+            ],
+        )
         t = _tariff(power_price=PriceGroup(components=[high, low]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat])
 
@@ -398,11 +470,17 @@ class TestNextTransitionAt:
     def test_scan_starts_at_next_full_minute(self) -> None:
         # After = exactly 06:30:45 → scan starts at 06:31 (not 06:30:45+1s)
         wd_pat = _weekday_pat()
-        high = _component("high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])])
-        low = _component("low", "low", active_periods=[
-            _ap(time(0, 0), time(7, 0), include=["wd"]),
-            _ap(time(20, 0), time(0, 0), include=["wd"]),
-        ])
+        high = _component(
+            "high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])]
+        )
+        low = _component(
+            "low",
+            "low",
+            active_periods=[
+                _ap(time(0, 0), time(7, 0), include=["wd"]),
+                _ap(time(20, 0), time(0, 0), include=["wd"]),
+            ],
+        )
         t = _tariff(power_price=PriceGroup(components=[high, low]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat])
 
@@ -413,7 +491,9 @@ class TestNextTransitionAt:
 
     def test_returns_none_when_horizon_too_short(self) -> None:
         wd_pat = _weekday_pat()
-        high = _component("high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])])
+        high = _component(
+            "high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])]
+        )
         t = _tariff(power_price=PriceGroup(components=[high]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat])
 
@@ -424,10 +504,18 @@ class TestNextTransitionAt:
 
     def test_transition_between_energy_components(self) -> None:
         # Energy component active only in morning
-        morning = _component("am", "morning_energy", ComponentType.ENERGY,
-                             active_periods=[_ap(time(6, 0), time(12, 0))])
-        afternoon = _component("pm", "afternoon_energy", ComponentType.ENERGY,
-                               active_periods=[_ap(time(12, 0), time(20, 0))])
+        morning = _component(
+            "am",
+            "morning_energy",
+            ComponentType.ENERGY,
+            active_periods=[_ap(time(6, 0), time(12, 0))],
+        )
+        afternoon = _component(
+            "pm",
+            "afternoon_energy",
+            ComponentType.ENERGY,
+            active_periods=[_ap(time(12, 0), time(20, 0))],
+        )
         t = _tariff(energy_price=PriceGroup(components=[morning, afternoon]))
         coll = _collection(tariff=t)
 
@@ -439,8 +527,12 @@ class TestNextTransitionAt:
     def test_transition_at_end_of_day_to_next_day(self) -> None:
         wd_pat = _weekday_pat()
         we_pat = _weekend_pat()
-        weekday_comp = _component("wd_c", "wd_band", active_periods=[_ap(time(0, 0), time(0, 0), include=["wd"])])
-        weekend_comp = _component("we_c", "we_band", active_periods=[_ap(time(0, 0), time(0, 0), include=["we"])])
+        weekday_comp = _component(
+            "wd_c", "wd_band", active_periods=[_ap(time(0, 0), time(0, 0), include=["wd"])]
+        )
+        weekend_comp = _component(
+            "we_c", "we_band", active_periods=[_ap(time(0, 0), time(0, 0), include=["we"])]
+        )
         t = _tariff(power_price=PriceGroup(components=[weekday_comp, weekend_comp]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat, we_pat])
 
@@ -495,7 +587,9 @@ class TestBuildDaySchedule:
         assert all(s.band_reference == "flat" for s in slots)
 
     def test_slots_carry_price_and_currency(self) -> None:
-        comp = _component("c1", "band_a", price_val=2.5, active_periods=[_ap(time(0, 0), time(0, 0))])
+        comp = _component(
+            "c1", "band_a", price_val=2.5, active_periods=[_ap(time(0, 0), time(0, 0))]
+        )
         t = _tariff(power_price=PriceGroup(components=[comp]))
         coll = _collection(tariff=t)
         slots = build_day_schedule(t, coll, date(2025, 6, 2), _TZ)
@@ -503,7 +597,9 @@ class TestBuildDaySchedule:
         assert all(s.currency == "SEK" for s in slots)
 
     def test_slots_carry_ex_vat_price(self) -> None:
-        comp = _component("c1", "band_a", price_val=1.0, active_periods=[_ap(time(0, 0), time(0, 0))])
+        comp = _component(
+            "c1", "band_a", price_val=1.0, active_periods=[_ap(time(0, 0), time(0, 0))]
+        )
         t = _tariff(power_price=PriceGroup(components=[comp]))
         coll = _collection(tariff=t)
         slots = build_day_schedule(t, coll, date(2025, 6, 2), _TZ)
@@ -511,12 +607,21 @@ class TestBuildDaySchedule:
 
     def test_weekday_band_transitions(self) -> None:
         wd_pat = _weekday_pat()
-        high = _component("high", "high", price_val=2.0,
-                           active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])])
-        low = _component("low", "low", price_val=0.5, active_periods=[
-            _ap(time(0, 0), time(7, 0), include=["wd"]),
-            _ap(time(20, 0), time(0, 0), include=["wd"]),
-        ])
+        high = _component(
+            "high",
+            "high",
+            price_val=2.0,
+            active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])],
+        )
+        low = _component(
+            "low",
+            "low",
+            price_val=0.5,
+            active_periods=[
+                _ap(time(0, 0), time(7, 0), include=["wd"]),
+                _ap(time(20, 0), time(0, 0), include=["wd"]),
+            ],
+        )
         t = _tariff(power_price=PriceGroup(components=[high, low]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat])
 
@@ -526,13 +631,17 @@ class TestBuildDaySchedule:
         high_slots = [s for s in slots if s.band_reference == "high"]
         low_slots = [s for s in slots if s.band_reference == "low"]
         assert len(high_slots) == 13  # 07:00–20:00 = 13 hours
-        assert len(low_slots) == 11   # 00:00–07:00 (7) + 20:00–24:00 (4) = 11
+        assert len(low_slots) == 11  # 00:00–07:00 (7) + 20:00–24:00 (4) = 11
 
     def test_weekend_all_day_low_band(self) -> None:
         wd_pat = _weekday_pat()
         we_pat = _weekend_pat()
-        high = _component("high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])])
-        low_we = _component("low_we", "low_we", active_periods=[_ap(time(0, 0), time(0, 0), include=["we"])])
+        high = _component(
+            "high", "high", active_periods=[_ap(time(7, 0), time(20, 0), include=["wd"])]
+        )
+        low_we = _component(
+            "low_we", "low_we", active_periods=[_ap(time(0, 0), time(0, 0), include=["we"])]
+        )
         t = _tariff(power_price=PriceGroup(components=[high, low_we]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat, we_pat])
 
@@ -546,12 +655,20 @@ class TestBuildDaySchedule:
         wd_pat = _weekday_pat()
         hol_pat = _holiday_pat([holiday])
 
-        high = _component("high", "high", active_periods=[
-            _ap(time(7, 0), time(20, 0), include=["wd"], exclude=["hol"]),
-        ])
-        hol_low = _component("hol_low", "hol_low", active_periods=[
-            _ap(time(0, 0), time(0, 0), include=["hol"]),
-        ])
+        high = _component(
+            "high",
+            "high",
+            active_periods=[
+                _ap(time(7, 0), time(20, 0), include=["wd"], exclude=["hol"]),
+            ],
+        )
+        hol_low = _component(
+            "hol_low",
+            "hol_low",
+            active_periods=[
+                _ap(time(0, 0), time(0, 0), include=["hol"]),
+            ],
+        )
         t = _tariff(power_price=PriceGroup(components=[high, hol_low]))
         coll = TariffCollection(tariffs=[t], calendar_patterns=[wd_pat, hol_pat])
 

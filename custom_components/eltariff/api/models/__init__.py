@@ -3,6 +3,7 @@
 Any import that previously used ``from .api.models import X`` or
 ``from custom_components.eltariff.api.models import X`` will still work.
 """
+
 from .active_period import ActivePeriod
 from .calendar_pattern import CalendarPattern
 from .calendar_pattern_references import CalendarPatternReferences

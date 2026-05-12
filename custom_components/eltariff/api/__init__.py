@@ -1,4 +1,5 @@
 """API package for the eltariff integration."""
+
 from .models import (
     ActiveTariffSnapshot,
     CalendarPattern,

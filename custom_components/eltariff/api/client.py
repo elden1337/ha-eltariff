@@ -1,4 +1,5 @@
 """Async HTTP client for the RI-SE Grid Tariff API."""
+
 from __future__ import annotations
 
 import logging

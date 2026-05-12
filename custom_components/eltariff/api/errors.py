@@ -1,4 +1,5 @@
 """API error types for the eltariff integration."""
+
 from __future__ import annotations
 
 

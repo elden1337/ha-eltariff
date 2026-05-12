@@ -4,6 +4,7 @@ State is the total running cost for the current billing period.
 Attributes break the cost down into peak, transmission, tax and fixed
 components, plus peak tracking metadata.
 """
+
 from __future__ import annotations
 
 import logging
@@ -21,9 +22,7 @@ from ..coordinator import EltariffCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-class RunningCostSensor(
-    CoordinatorEntity[EltariffCoordinator], RestoreEntity, SensorEntity
-):
+class RunningCostSensor(CoordinatorEntity[EltariffCoordinator], RestoreEntity, SensorEntity):
     """HA sensor whose state is the running cost for the billing period."""
 
     _attr_has_entity_name = True
@@ -44,6 +43,8 @@ class RunningCostSensor(
         self._cost_service = cost_service
         self._vat_mode = vat_mode
         self._attr_unique_id = f"{entry.entry_id}_running_cost"
+        self._breakdown_cache_key: int = -1
+        self._breakdown = None
 
     @property
     def device_info(self):
@@ -68,40 +69,35 @@ class RunningCostSensor(
                 except Exception:
                     _LOGGER.exception("Failed to restore cost service state")
 
+    def _get_breakdown(self):
+        """Return breakdown, computed once per coordinator data object."""
+        if self.coordinator.data is None:
+            return None
+        data_id = id(self.coordinator.data)
+        if self._breakdown_cache_key != data_id:
+            from datetime import UTC, datetime
+
+            self._breakdown = self._cost_service.get_breakdown(
+                datetime.now(tz=UTC), self.coordinator.data.snapshot
+            )
+            self._breakdown_cache_key = data_id
+        return self._breakdown
+
     @property
     def native_value(self) -> float | None:
-        snapshot = self.coordinator.data.snapshot if self.coordinator.data else None
-        if snapshot is None:
-            return None
-        from datetime import UTC, datetime
-
-        breakdown = self._cost_service.get_breakdown(
-            datetime.now(tz=UTC), snapshot
-        )
-        return round(breakdown.total, 2)
+        bd = self._get_breakdown()
+        return round(bd.total, 2) if bd is not None else None
 
     @property
     def native_unit_of_measurement(self) -> str:
-        snapshot = self.coordinator.data.snapshot if self.coordinator.data else None
-        if snapshot is None:
-            return "SEK"
-        from datetime import UTC, datetime
-
-        breakdown = self._cost_service.get_breakdown(
-            datetime.now(tz=UTC), snapshot
-        )
-        return breakdown.currency
+        bd = self._get_breakdown()
+        return bd.currency if bd is not None else "SEK"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        snapshot = self.coordinator.data.snapshot if self.coordinator.data else None
-        if snapshot is None:
+        bd = self._get_breakdown()
+        if bd is None:
             return {}
-
-        from datetime import UTC, datetime
-
-        now = datetime.now(tz=UTC)
-        bd = self._cost_service.get_breakdown(now, snapshot)
 
         return {
             "peak_cost": round(bd.peak_cost, 4),
@@ -118,8 +114,7 @@ class RunningCostSensor(
                 bd.billing_period_end.isoformat() if bd.billing_period_end else None
             ),
             "stored_peaks": [
-                {"dt": p.dt.isoformat(), "kwh": round(p.value, 4)}
-                for p in bd.stored_peaks
+                {"dt": p.dt.isoformat(), "kwh": round(p.value, 4)} for p in bd.stored_peaks
             ],
             "cost_service_state": self._cost_service.save_state(),
         }

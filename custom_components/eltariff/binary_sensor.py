@@ -1,4 +1,5 @@
 """Binary sensor entities for the eltariff integration."""
+
 from __future__ import annotations
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
@@ -61,8 +62,6 @@ class HighTariffActiveSensor(CoordinatorEntity[EltariffCoordinator], BinarySenso
             "tariff_id": t.id,
             "tariff_name": t.name,
             "next_transition": (
-                self._data.next_transition.isoformat()
-                if self._data.next_transition
-                else None
+                self._data.next_transition.isoformat() if self._data.next_transition else None
             ),
         }

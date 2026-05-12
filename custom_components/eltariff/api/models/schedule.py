@@ -3,6 +3,7 @@
 All classes have been moved to their own modules. This shim preserves
 any imports that reference ``api.models.schedule`` directly.
 """
+
 from __future__ import annotations
 
 from .active_period import ActivePeriod

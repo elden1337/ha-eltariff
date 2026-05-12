@@ -1,4 +1,5 @@
 """Unit tests for PeakTracker and CostService billing calculations."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

@@ -1,4 +1,5 @@
 """Spike script: fetch and pretty-print Göteborg Energi tariffs."""
+
 import asyncio
 import json
 import sys

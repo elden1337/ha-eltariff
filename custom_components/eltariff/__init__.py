@@ -1,4 +1,5 @@
 """The eltariff integration."""
+
 from __future__ import annotations
 
 import logging
@@ -17,11 +18,7 @@ PLATFORMS = ["sensor", "binary_sensor"]
 
 
 def _energy_entity_id(entry: ConfigEntry) -> str | None:
-    return (
-        entry.options.get(CONF_ENERGY_SENSOR)
-        or entry.data.get(CONF_ENERGY_SENSOR)
-        or None
-    )
+    return entry.options.get(CONF_ENERGY_SENSOR) or entry.data.get(CONF_ENERGY_SENSOR) or None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -38,10 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .billing.cost_service import CostService
         from .energy_tracker import EnergyTracker
 
-        vat_mode = (
-            entry.options.get(CONF_VAT_MODE)
-            or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
-        )
+        vat_mode = entry.options.get(CONF_VAT_MODE) or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
 
         cost_service = CostService()
         cost_service.vat_mode = vat_mode
@@ -74,6 +68,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register domain services once — guarded so multiple entries don't collide.
     if not hass.services.has_service(DOMAIN, "refresh"):
+
         async def handle_refresh(call) -> None:
             for coord in hass.data.get(DOMAIN, {}).values():
                 await coord.async_request_refresh()
@@ -81,6 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_register(DOMAIN, "refresh", handle_refresh)
 
     if not hass.services.has_service(DOMAIN, "get_schedule"):
+
         async def handle_get_schedule(call) -> dict:
             import zoneinfo
 
@@ -106,17 +102,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 day = start_day + timedelta(days=i)
                 slots = build_day_schedule(tariff, coord.data.collection, day, tz)
                 for s in slots:
-                    schedule.append({
-                        "start": s.start.isoformat(),
-                        "end": s.end.isoformat(),
-                        "band": s.band_reference,
-                        "price_inc_vat": s.price_inc_vat,
-                        "currency": s.currency,
-                    })
+                    schedule.append(
+                        {
+                            "start": s.start.isoformat(),
+                            "end": s.end.isoformat(),
+                            "band": s.band_reference,
+                            "price_inc_vat": s.price_inc_vat,
+                            "currency": s.currency,
+                        }
+                    )
 
             return {"schedule": schedule}
 
         from homeassistant.core import SupportsResponse
+
         hass.services.async_register(
             DOMAIN,
             "get_schedule",

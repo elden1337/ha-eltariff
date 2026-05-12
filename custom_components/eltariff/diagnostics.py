@@ -1,4 +1,5 @@
 """Diagnostics support for eltariff."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -40,9 +41,7 @@ async def async_get_config_entry_diagnostics(
             "active_fixed_components": [c.id for c in snap.active_fixed_components],
             "parse_warnings": snap.parse_warnings,
         },
-        "next_transition": (
-            data.next_transition.isoformat() if data.next_transition else None
-        ),
+        "next_transition": (data.next_transition.isoformat() if data.next_transition else None),
         "calendar_patterns": [
             {"id": p.id, "name": p.name, "type": p.pattern_type}
             for p in data.collection.calendar_patterns

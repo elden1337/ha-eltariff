@@ -1,4 +1,5 @@
 """Basic smoke tests for model parsing."""
+
 import json
 from datetime import UTC, date, datetime
 from pathlib import Path

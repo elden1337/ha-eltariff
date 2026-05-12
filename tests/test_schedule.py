@@ -1,4 +1,5 @@
 """Tests for schedule resolution logic."""
+
 from datetime import date, datetime, time, timezone
 
 import pytest
@@ -57,7 +58,9 @@ def _weekend_pattern(id_: str = "weekends") -> CalendarPattern:
 
 
 def _holiday_pattern(dates: list[date], id_: str = "holidays") -> CalendarPattern:
-    return CalendarPattern(id=id_, name="Holidays", pattern_type=CalendarPatternType.HOLIDAYS, dates=dates)
+    return CalendarPattern(
+        id=id_, name="Holidays", pattern_type=CalendarPatternType.HOLIDAYS, dates=dates
+    )
 
 
 def _make_power_component(
@@ -90,30 +93,43 @@ class TestWeekdayHighLow:
         weekend_pat = _weekend_pattern()
 
         high = _make_power_component(
-            "high", "winter_high",
-            [_make_active_period(
-                time(7, 0), time(20, 0),
-                include=["weekdays"],
-                exclude=["holidays"],
-            )],
+            "high",
+            "winter_high",
+            [
+                _make_active_period(
+                    time(7, 0),
+                    time(20, 0),
+                    include=["weekdays"],
+                    exclude=["holidays"],
+                )
+            ],
             price=2.0,
         )
         low_weekday = _make_power_component(
-            "low_wd", "winter_low_weekday",
+            "low_wd",
+            "winter_low_weekday",
             [
-                _make_active_period(time(0, 0), time(7, 0), include=["weekdays"], exclude=["holidays"]),
-                _make_active_period(time(20, 0), time(0, 0), include=["weekdays"], exclude=["holidays"]),
+                _make_active_period(
+                    time(0, 0), time(7, 0), include=["weekdays"], exclude=["holidays"]
+                ),
+                _make_active_period(
+                    time(20, 0), time(0, 0), include=["weekdays"], exclude=["holidays"]
+                ),
             ],
             price=0.5,
         )
         low_weekend = _make_power_component(
-            "low_we", "winter_low_weekend",
+            "low_we",
+            "winter_low_weekend",
             [_make_active_period(time(0, 0), time(0, 0), include=["weekends"])],
             price=0.5,
         )
 
         tariff = Tariff(
-            id="t1", name="Test", product="P1", company_name="Test AB",
+            id="t1",
+            name="Test",
+            product="P1",
+            company_name="Test AB",
             valid_period=_make_valid_period(),
             power_price=PriceGroup(components=[high, low_weekday, low_weekend]),
         )
@@ -156,16 +172,25 @@ class TestHolidayExclusion:
         holiday_pat = _holiday_pattern([holiday])
 
         high = _make_power_component(
-            "high", "high",
-            [_make_active_period(time(7, 0), time(20, 0), include=["weekdays"], exclude=["holidays"])],
+            "high",
+            "high",
+            [
+                _make_active_period(
+                    time(7, 0), time(20, 0), include=["weekdays"], exclude=["holidays"]
+                )
+            ],
         )
         low = _make_power_component(
-            "low", "low",
+            "low",
+            "low",
             [_make_active_period(time(0, 0), time(0, 0), include=["holidays"])],
         )
 
         tariff = Tariff(
-            id="t1", name="T", product="P", company_name="X",
+            id="t1",
+            name="T",
+            product="P",
+            company_name="X",
             valid_period=_make_valid_period(),
             power_price=PriceGroup(components=[high, low]),
         )

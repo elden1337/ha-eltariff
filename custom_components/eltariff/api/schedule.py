@@ -1,4 +1,5 @@
 """Pure schedule resolution: which tariff components are active at a given datetime."""
+
 from __future__ import annotations
 
 import logging
@@ -72,10 +73,7 @@ def _component_active(
         return True
 
     return any(
-        any(
-            _active_period_matches(ap, dt, collection)
-            for ap in rp.active_periods
-        )
+        any(_active_period_matches(ap, dt, collection) for ap in rp.active_periods)
         for rp in component.recurring_periods
     )
 
@@ -140,11 +138,14 @@ def next_transition_at(
     changes infrequently, so this runs only once per snapshot update.
     """
     current = resolve_active_components(tariff, collection, after)
-    current_ids = {c.id for c in (
-        current.active_power_components
-        + current.active_energy_components
-        + current.active_fixed_components
-    )}
+    current_ids = {
+        c.id
+        for c in (
+            current.active_power_components
+            + current.active_energy_components
+            + current.active_fixed_components
+        )
+    }
 
     # Advance to the start of the next minute for clean boundaries.
     t = after.replace(second=0, microsecond=0) + timedelta(minutes=1)
@@ -152,11 +153,14 @@ def next_transition_at(
 
     while t <= end:
         snap = resolve_active_components(tariff, collection, t)
-        ids = {c.id for c in (
-            snap.active_power_components
-            + snap.active_energy_components
-            + snap.active_fixed_components
-        )}
+        ids = {
+            c.id
+            for c in (
+                snap.active_power_components
+                + snap.active_energy_components
+                + snap.active_fixed_components
+            )
+        }
         if ids != current_ids:
             return t
         t += timedelta(minutes=1)
@@ -182,14 +186,16 @@ def build_day_schedule(
         pc = snap.active_power_component
 
         if pc:
-            slots.append(ScheduleSlot(
-                start=t,
-                end=slot_end,
-                band_reference=pc.reference,
-                price_inc_vat=pc.price.price_inc_vat,
-                price_ex_vat=pc.price.price_ex_vat,
-                currency=pc.price.currency,
-            ))
+            slots.append(
+                ScheduleSlot(
+                    start=t,
+                    end=slot_end,
+                    band_reference=pc.reference,
+                    price_inc_vat=pc.price.price_inc_vat,
+                    price_ex_vat=pc.price.price_ex_vat,
+                    currency=pc.price.currency,
+                )
+            )
         t = slot_end
 
     return slots

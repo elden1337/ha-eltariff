@@ -1,4 +1,5 @@
 """Constants for the eltariff integration."""
+
 DOMAIN = "eltariff"
 
 CONF_BASE_URL = "base_url"

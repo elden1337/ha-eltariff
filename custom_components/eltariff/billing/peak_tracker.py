@@ -3,6 +3,7 @@
 Stores the top *N* peaks across the billing period (one per identification
 period) and computes observed / charged peak values.
 """
+
 from __future__ import annotations
 
 import logging
@@ -94,20 +95,14 @@ class PeakTracker:
 
         # Check for existing peak in the same identification period
         same_period_idx = next(
-            (
-                i
-                for i, p in enumerate(self._peaks)
-                if is_same_period(dt, p.dt, self._id_period)
-            ),
+            (i for i, p in enumerate(self._peaks) if is_same_period(dt, p.dt, self._id_period)),
             None,
         )
 
         if same_period_idx is not None:
             if value > self._peaks[same_period_idx].value:
                 self._peaks[same_period_idx] = PeakRecord(dt=dt, value=value)
-                _LOGGER.debug(
-                    "Updated peak in same period: %.3f kWh at %s", value, dt
-                )
+                _LOGGER.debug("Updated peak in same period: %.3f kWh at %s", value, dt)
                 return True
             return False
 

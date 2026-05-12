@@ -1,4 +1,5 @@
 """PeaksUsedForAverageSensor entity."""
+
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorStateClass
