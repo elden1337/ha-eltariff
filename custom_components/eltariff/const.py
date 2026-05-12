@@ -29,8 +29,13 @@ VAT_MODE_INC = "inc_vat"
 VAT_MODE_EX = "ex_vat"
 VAT_MODES = [VAT_MODE_INC, VAT_MODE_EX]
 
-# How often to poll /info to check tariffDataLastUpdated
-INFO_POLL_INTERVAL_SECONDS = 3600  # 1 hour
+# How often to poll /info to check tariffDataLastUpdated (base interval, before jitter)
+INFO_POLL_BASE_SECONDS = 12 * 3600  # ~12 hours
 
-# How often the coordinator recomputes the active snapshot from cached data
+# Random jitter applied to INFO_POLL_BASE_SECONDS (uniform ±).
+# Spreads requests across installations so the API isn't hit simultaneously.
+INFO_POLL_JITTER_SECONDS = 30 * 60  # ±30 minutes
+
+# How often the coordinator recomputes the active snapshot from cached data.
+# Kept short so tariff period transitions (peak → off-peak etc.) are reflected promptly.
 SNAPSHOT_REFRESH_INTERVAL_SECONDS = 60
