@@ -24,24 +24,9 @@ from .const import (
     DOMAIN,
     SNAPSHOT_REFRESH_INTERVAL_SECONDS,
 )
+from .coordinator_data import EltariffCoordinatorData
 
 _LOGGER = logging.getLogger(__name__)
-
-
-class EltariffCoordinatorData:
-    """All data the coordinator exposes to entities."""
-
-    def __init__(
-        self,
-        info: ServerInfo,
-        collection: TariffCollection,
-        snapshot: ActiveTariffSnapshot,
-        next_transition: datetime | None,
-    ) -> None:
-        self.info = info
-        self.collection = collection
-        self.snapshot = snapshot
-        self.next_transition = next_transition
 
 
 class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):

@@ -6,19 +6,12 @@ from typing import Any
 
 import aiohttp
 
+from .errors import TariffApiAuthError, TariffApiError
 from .models import ServerInfo, Tariff, TariffCollection
 
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = aiohttp.ClientTimeout(total=30)
-
-
-class TariffApiError(Exception):
-    """Base error for API communication failures."""
-
-
-class TariffApiAuthError(TariffApiError):
-    """Raised when the server returns 401/403."""
 
 
 class TariffApiClient:

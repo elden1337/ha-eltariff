@@ -1,16 +1,17 @@
-"""Snapshot dataclasses."""
+"""ActiveTariffSnapshot dataclass."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .price import PriceComponent
+from .price_component import PriceComponent
 from .tariff import Tariff
 
 
 @dataclass
 class ActiveTariffSnapshot:
     """Result of resolving which tariff components are active at a given moment."""
+
     at: datetime
     tariff: Tariff
     active_power_components: list[PriceComponent]
@@ -29,14 +30,3 @@ class ActiveTariffSnapshot:
     @property
     def total_energy_price_ex_vat(self) -> float:
         return sum(c.price.price_ex_vat for c in self.active_energy_components)
-
-
-@dataclass
-class ScheduleSlot:
-    """One contiguous time band in a day schedule."""
-    start: datetime
-    end: datetime
-    band_reference: str
-    price_inc_vat: float
-    price_ex_vat: float
-    currency: str
