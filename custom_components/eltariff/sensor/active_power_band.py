@@ -18,7 +18,7 @@ class ActivePowerBandSensor(EltariffSensorBase):
     @property
     def native_value(self) -> str | None:
         pc = self._data.snapshot.active_power_component
-        return pc.reference if pc else None
+        return pc.reference.capitalize() if pc else None
 
     @property
     def extra_state_attributes(self) -> dict:
