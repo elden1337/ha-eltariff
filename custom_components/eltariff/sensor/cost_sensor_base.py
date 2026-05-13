@@ -56,10 +56,13 @@ class CostSensorBase(CoordinatorEntity[EltariffCoordinator], RestoreEntity, Sens
             except (ValueError, TypeError):
                 pass
 
-        # Attempt to restore the shared CostService state.  Multiple cost
-        # sensors may each try this; the data is identical so the last
-        # write wins harmlessly.
-        if last_state.attributes:
+        # Attempt to restore the shared CostService state.  Only the first
+        # sensor to run this will actually perform the restore; subsequent
+        # sensors skip it because the billing period is already set.
+        if (
+            last_state.attributes
+            and self._cost_service._billing_period_start is None
+        ):
             saved = last_state.attributes.get("cost_service_state")
             if saved and isinstance(saved, dict):
                 try:
