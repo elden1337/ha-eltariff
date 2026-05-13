@@ -25,11 +25,12 @@ The structure of Swedish grid tariffs is complex, with multiple price components
 
 ## Configuration
 
-The setup flow has three steps:
+The setup flow has three required steps, plus one optional step if you want running cost and peak tracking:
 
 1. **Pick DSO** — select your grid owner from the dropdown. The integration validates the endpoint before proceeding.
 2. **Pick tariff** — select your tariff from the list. The tariff currently valid today is listed first.
-3. **Options** — choose whether sensor values should include or exclude VAT (`inc_vat` / `ex_vat`). Optionally enter a Bearer token if your DSO requires authentication. Optionally select an **energy sensor** to enable running cost tracking (see [Running cost sensor](#running-cost-sensor) below).
+3. **Options** — choose whether sensor values should include or exclude VAT (`inc_vat` / `ex_vat`). Optionally enter a Bearer token if your DSO requires authentication.
+4. **(Optional) Running cost setup** — select an **energy sensor** to enable `running_cost`, `observed_peak`, and `charged_peak` sensors (see [Optional step 4 — enable running cost tracking](#optional-step-4--enable-running-cost-tracking)).
 
 ## Sensors
 
@@ -83,7 +84,12 @@ Peak tracking uses the tariff's `peakIdentificationSettings` from the API:
 
 Peaks and accumulated costs **persist across HA restarts** via Home Assistant's restore-state mechanism — you won't lose your monthly data on a reboot.
 
-## Preparing an energy sensor
+## Optional step 4 — enable running cost tracking
+
+If you only want tariff info sensors, you can skip this section.  
+If you also want `running_cost`, `observed_peak`, and `charged_peak`, complete this optional step.
+
+### Preparing an energy sensor
 
 The running cost sensor expects a **cumulative energy sensor in kWh**. If you only have a power sensor (watts), you can create one using Home Assistant's built-in helpers.
 
@@ -158,6 +164,21 @@ automation:
       - service: notify.mobile
         data:
           message: "Grid cost has passed 500 SEK this month."
+```
+
+### React to your current peak level (observed peak)
+
+```yaml
+automation:
+  - alias: "Warn when observed peak gets high"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.my_dso_my_tariff_observed_peak
+        above: 8
+    action:
+      - service: notify.mobile
+        data:
+          message: "Observed peak is now above 8 kW. Avoid starting more high-load devices."
 ```
 
 ## Known limitations
