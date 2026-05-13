@@ -27,7 +27,7 @@ pip install -r requirements.txt
 .venv/bin/ruff check --fix custom_components/ tests/
 ```
 
-All 187 tests must pass and ruff must report no errors before a PR is merged.
+All tests must pass and ruff must report no errors before a PR is merged.
 
 ## Architecture
 
@@ -73,7 +73,7 @@ Tests live in `tests/`. Match the existing split:
 
 `asyncio_mode = "auto"` is set globally — async test functions work without decorators.
 
-Write tests for any new billing logic or API model behaviour. Pure unit tests (no HA fixtures) are preferred.
+Write tests for any new billing logic or API model behavior. Pure unit tests (no HA fixtures) are preferred.
 
 To run the integration smoke tests, populate `samples/` first:
 
@@ -86,7 +86,7 @@ python scripts/dump_tariff.py
 - One logical change per PR.
 - If you add a sensor, add a test for the value it exposes.
 - If you change serialisation (e.g. `CostServiceState`), ensure old persisted state still deserialises without error.
-- Update `README.md` if user-visible behaviour changes.
+- Update `README.md` if user-visible behavior changes.
 
 ## For agents
 
