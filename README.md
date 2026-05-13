@@ -1,4 +1,4 @@
-# ha-eltariff
+# HA Eltariff
 
 A Home Assistant custom integration that exposes Swedish DSO (Distribution System Operator) grid tariffs as sensors. It complements spot-price integrations such as Nordpool or Tibber by covering the network charge side of the electricity bill — the part you pay your grid owner, not your electricity supplier.
 The structure of Swedish grid tariffs is complex, with multiple price components that can vary by time of day, day of week, season, and total consumption. This integration implements the [RI-SE Grid Tariff API](https://github.com/RI-SE/Eltariff-API), which several DSOs have adopted to publish their tariffs in a structured way.
