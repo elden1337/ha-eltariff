@@ -15,7 +15,9 @@ class TransmissionCostSensor(CostSensorBase):
     @property
     def native_value(self) -> float | None:
         bd = self._get_breakdown()
-        return round(bd.transmission_cost, 2) if bd is not None else None
+        if bd is not None:
+            return round(bd.transmission_cost, 2)
+        return self._restored_native_value
 
     @property
     def native_unit_of_measurement(self) -> str:

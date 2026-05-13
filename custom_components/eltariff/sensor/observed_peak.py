@@ -19,4 +19,6 @@ class ObservedPeakSensor(CostSensorBase):
     @property
     def native_value(self) -> float | None:
         bd = self._get_breakdown()
-        return round(bd.observed_peak_kw, 3) if bd is not None else None
+        if bd is not None:
+            return round(bd.observed_peak_kw, 3)
+        return self._restored_native_value
