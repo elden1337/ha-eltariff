@@ -58,9 +58,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN][f"{entry.entry_id}_tracker"] = tracker
         hass.data[DOMAIN][f"{entry.entry_id}_cost_service"] = cost_service
-        entry.async_on_unload(tracker.async_setup())
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Start the energy tracker AFTER sensor platform setup so that
+    # async_added_to_hass has already restored the CostService state before
+    # any energy events arrive.
+    if energy_id:
+        tracker = hass.data[DOMAIN][f"{entry.entry_id}_tracker"]
+        entry.async_on_unload(tracker.async_setup())
 
     # Reload this entry whenever options are saved so the tracker and VAT mode
     # are updated without requiring a manual restart.
