@@ -57,12 +57,9 @@ class CostSensorBase(CoordinatorEntity[EltariffCoordinator], RestoreEntity, Sens
                 pass
 
         # Attempt to restore the shared CostService state.  Only the first
-        # sensor to run this will actually perform the restore; subsequent
-        # sensors skip it because the billing period is already set.
-        if (
-            last_state.attributes
-            and self._cost_service._billing_period_start is None
-        ):
+        # sensor to run this will actually perform the restore; the CostService
+        # itself guards against double-restore via _state_restored.
+        if last_state.attributes:
             saved = last_state.attributes.get("cost_service_state")
             if saved and isinstance(saved, dict):
                 try:

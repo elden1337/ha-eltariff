@@ -75,6 +75,7 @@ class CostService:
         self._total_energy_kwh: float = 0.0
 
         self._configured = False
+        self._state_restored = False
 
     # ------------------------------------------------------------------
     # Configuration
@@ -259,7 +260,14 @@ class CostService:
         ).to_dict()
 
     def restore_state(self, data: dict) -> None:
-        """Restore from a previously saved dict."""
+        """Restore from a previously saved dict.
+
+        Only the first call takes effect; subsequent calls are ignored so that
+        multiple sensors sharing the same CostService don't overwrite each other.
+        """
+        if self._state_restored:
+            return
+
         state = CostServiceState.from_dict(data)
 
         if state.billing_period_start_iso:
@@ -288,6 +296,7 @@ class CostService:
                 self._deferred_peaks = list(state.peaks)
 
         _LOGGER.info("CostService state restored (peaks=%d)", len(state.peaks))
+        self._state_restored = True
 
     # ------------------------------------------------------------------
     # Internal helpers
