@@ -110,8 +110,13 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
             )
 
         now = datetime.now(tz=UTC)
+        today = now.date()
+        valid_tariffs = [
+            t for t in collection.tariffs
+            if t.valid_period.to_excluding is None or t.valid_period.to_excluding > today
+        ]
         sorted_tariffs = sorted(
-            collection.tariffs,
+            valid_tariffs,
             key=lambda t: 0 if t.valid_period.contains(now) else 1,
         )
 
