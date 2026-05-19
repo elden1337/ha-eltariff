@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
 from typing import Any
 
 import aiohttp
 
 from .errors import TariffApiAuthError, TariffApiError
 from .models import ServerInfo, Tariff, TariffCollection
+from .models.prices_response import PricesResponse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,3 +67,15 @@ class TariffApiClient:
         if tariff is None:
             raise TariffApiError(f"Tariff {tariff_id!r} not found in response")
         return tariff, collection
+
+    async def get_prices(
+        self,
+        component_id: str,
+        target_date: date | None = None,
+    ) -> PricesResponse:
+        """Fetch hourly price curve from GET /prices/{componentId}."""
+        path = f"/prices/{component_id}"
+        if target_date is not None:
+            path += f"?date={target_date.isoformat()}"
+        data = await self._get(path)
+        return PricesResponse.from_dict(data)

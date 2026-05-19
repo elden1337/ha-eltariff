@@ -49,3 +49,12 @@ INFO_POLL_JITTER_SECONDS = 30 * 60  # ±30 minutes
 # How often the coordinator recomputes the active snapshot from cached data.
 # Kept short so tariff period transitions (peak → off-peak etc.) are reflected promptly.
 SNAPSHOT_REFRESH_INTERVAL_SECONDS = 60
+
+# Price curve polling: starts at this hour (local time) each day.
+PRICE_CURVE_POLL_START_HOUR = 12
+
+# Base interval between /prices polls (seconds).
+PRICE_CURVE_POLL_INTERVAL_SECONDS = 300  # 5 minutes
+
+# Random jitter added to each poll interval to desynchronize clients (seconds).
+PRICE_CURVE_POLL_JITTER_SECONDS = 60

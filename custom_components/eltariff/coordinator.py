@@ -18,6 +18,7 @@ from .api import (
     resolve_active_components,
 )
 from .api.client import TariffApiAuthError, TariffApiClient, TariffApiError
+from .api.models.prices_response import PricesResponse
 from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,
@@ -26,9 +27,16 @@ from .const import (
     DOMAIN,
     INFO_POLL_BASE_SECONDS,
     INFO_POLL_JITTER_SECONDS,
+    PRICE_CURVE_POLL_INTERVAL_SECONDS,
+    PRICE_CURVE_POLL_JITTER_SECONDS,
+    PRICE_CURVE_POLL_START_HOUR,
     SNAPSHOT_REFRESH_INTERVAL_SECONDS,
 )
 from .coordinator_data import EltariffCoordinatorData
+from .price_curve_helpers import (
+    collect_price_curve_component_ids,
+    overlay_prices_on_snapshot,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +60,13 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         self._next_info_poll: datetime | None = None
         self._schedule_cache_key: tuple | None = None
         self._schedule_cache: list = []
+
+        # Price curve state
+        self._price_curves: dict[str, PricesResponse] = {}
+        # Per-component next poll time; None = poll immediately when eligible.
+        self._next_price_poll: datetime | None = None
+        # Random instance-level offset (0–120s) so clients don't poll simultaneously.
+        self._price_poll_hysteresis: float = random.uniform(0, 120)
 
     @property
     def tariff_id(self) -> str:
@@ -104,6 +119,76 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             next_poll.isoformat(),
         )
         return next_poll
+
+    def _should_poll_prices(self, now_local: datetime, tomorrow: date) -> bool:
+        """Decide whether to poll the /prices endpoint this cycle.
+
+        Polling starts at PRICE_CURVE_POLL_START_HOUR (+ per-instance hysteresis)
+        and runs every ~5 min until tomorrow's prices are available.
+        """
+        # Already have tomorrow's prices for all components — no need to poll.
+        if self._price_curves and all(
+            resp.has_date(tomorrow) for resp in self._price_curves.values()
+        ):
+            return False
+
+        start_hour = PRICE_CURVE_POLL_START_HOUR
+        poll_start = now_local.replace(
+            hour=start_hour, minute=0, second=0, microsecond=0
+        ) + timedelta(seconds=self._price_poll_hysteresis)
+
+        if now_local < poll_start:
+            return False
+
+        if self._next_price_poll is None or now_local >= self._next_price_poll:
+            jitter = random.uniform(0, PRICE_CURVE_POLL_JITTER_SECONDS)
+            self._next_price_poll = now_local + timedelta(
+                seconds=PRICE_CURVE_POLL_INTERVAL_SECONDS + jitter
+            )
+            return True
+
+        return False
+
+    async def _fetch_price_curves(
+        self,
+        component_ids: list[str],
+        now_local: datetime,
+    ) -> None:
+        """Fetch price curves for all price-curve components."""
+        today = now_local.date()
+        tomorrow = today + timedelta(days=1)
+
+        # Always ensure we have today's prices (first fetch of the day).
+        needs_today = not self._price_curves or any(
+            cid not in self._price_curves or not self._price_curves[cid].has_date(today)
+            for cid in component_ids
+        )
+
+        should_poll_tomorrow = self._should_poll_prices(now_local, tomorrow)
+
+        if not needs_today and not should_poll_tomorrow:
+            return
+
+        for cid in component_ids:
+            try:
+                # Fetch without date filter — API defaults to 7 days from today,
+                # which covers both today and tomorrow.
+                resp = await self._client.get_prices(cid)
+                self._price_curves[cid] = resp
+                _LOGGER.debug(
+                    "Fetched price curve for component %s: %d actual, %d forecast entries",
+                    cid,
+                    len(resp.actual),
+                    len(resp.forecast),
+                )
+            except TariffApiError as exc:
+                _LOGGER.warning("Failed to fetch price curve for %s: %s", cid, exc)
+
+        # Clean up stale entries (components no longer in the tariff).
+        active_ids = set(component_ids)
+        for stale_id in list(self._price_curves):
+            if stale_id not in active_ids:
+                del self._price_curves[stale_id]
 
     async def _async_update_data(self) -> EltariffCoordinatorData:
         if self._client is None:
@@ -167,7 +252,18 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
                 },
             )
 
+        # Fetch price curves for components that declare a url.
+        price_curve_ids = collect_price_curve_component_ids(tariff)
+        if price_curve_ids:
+            tz = zoneinfo.ZoneInfo(info.timezone or "Europe/Stockholm")
+            now_local = datetime.now(tz=tz)
+            await self._fetch_price_curves(price_curve_ids, now_local)
+
         snapshot = resolve_active_components(tariff, collection, now)
+
+        # Overlay fetched hourly prices onto snapshot components.
+        if self._price_curves:
+            snapshot = overlay_prices_on_snapshot(snapshot, self._price_curves, now)
 
         if snapshot.parse_warnings:
             for warning in snapshot.parse_warnings:
@@ -180,4 +276,5 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             collection=collection,
             snapshot=snapshot,
             next_transition=transition,
+            price_curves=dict(self._price_curves),
         )

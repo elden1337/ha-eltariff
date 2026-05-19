@@ -37,6 +37,16 @@ async def async_setup_entry(
         NextTransitionSensor(coordinator, entry),
     ]
 
+    # Add price curve sensors for components that have a url (dynamic pricing).
+    if coordinator.data and coordinator.data.price_curves:
+        from .price_curve import PriceCurveSensor
+
+        for comp_id in coordinator.data.price_curves:
+            comp_name = _find_component_name(coordinator, comp_id)
+            entities.append(
+                PriceCurveSensor(coordinator, entry, vat_mode, comp_id, comp_name)
+            )
+
     # Add cost-service sensors if an energy sensor (and thus CostService) is configured.
     cost_service = hass.data[DOMAIN].get(f"{entry.entry_id}_cost_service")
     if cost_service is not None:
@@ -57,3 +67,17 @@ async def async_setup_entry(
         ])
 
     async_add_entities(entities)
+
+
+def _find_component_name(coordinator: EltariffCoordinator, component_id: str) -> str | None:
+    """Look up the human-readable name for a price-curve component."""
+    if not coordinator.data or not coordinator.data.snapshot:
+        return None
+    tariff = coordinator.data.snapshot.tariff
+    for group in (tariff.energy_price, tariff.power_price):
+        if group is None:
+            continue
+        for comp in group.components:
+            if comp.id == component_id:
+                return comp.name
+    return None

@@ -10,3 +10,5 @@ class ComponentType(StrEnum):
     PEAK = "peak"
     ENERGY = "energy"
     PUBLIC = "public"
+    SPOT = "spot"
+    DYNAMIC = "dynamic"

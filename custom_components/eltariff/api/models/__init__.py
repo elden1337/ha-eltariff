@@ -13,6 +13,7 @@ from .peak_identification_settings import PeakIdentificationSettings
 from .price import Price
 from .price_component import PriceComponent
 from .price_group import PriceGroup
+from .prices_response import PriceListEntry, PricesResponse
 from .recurring_period import RecurringPeriod
 from .schedule_slot import ScheduleSlot
 from .server import ServerInfo
@@ -33,6 +34,8 @@ __all__ = [
     "Price",
     "PriceComponent",
     "PriceGroup",
+    "PriceListEntry",
+    "PricesResponse",
     "RecurringPeriod",
     "ScheduleSlot",
     "ServerInfo",
