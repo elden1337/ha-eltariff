@@ -72,6 +72,7 @@ class CostService:
         self._prev_reading: float | None = None
         self._accumulated_transmission: float = 0.0
         self._accumulated_tax: float = 0.0
+        self._accumulated_price_curve: float = 0.0
         self._total_energy_kwh: float = 0.0
 
         self._configured = False
@@ -193,9 +194,10 @@ class CostService:
 
             if delta > 0:
                 self._total_energy_kwh += delta
-                transmission_rate, tax_rate = self._energy_rates(snapshot)
+                transmission_rate, tax_rate, price_curve_rate = self._energy_rates(snapshot)
                 self._accumulated_transmission += delta * transmission_rate
                 self._accumulated_tax += delta * tax_rate
+                self._accumulated_price_curve += delta * price_curve_rate
 
         self._prev_reading = reading_kwh
 
@@ -218,6 +220,7 @@ class CostService:
             transmission_cost=self._accumulated_transmission,
             tax_cost=self._accumulated_tax,
             fixed_cost=fixed_cost,
+            price_curve_cost=self._accumulated_price_curve,
             observed_peak_kwh=tracker.observed_peak if tracker else 0.0,
             charged_peak_kwh=tracker.charged_peak if tracker else 0.0,
             peak_duration_hours=self._peak_duration_hours(),
@@ -256,6 +259,7 @@ class CostService:
             prev_reading=self._prev_reading,
             accumulated_transmission_cost=self._accumulated_transmission,
             accumulated_tax_cost=self._accumulated_tax,
+            accumulated_price_curve_cost=self._accumulated_price_curve,
             total_energy_kwh=self._total_energy_kwh,
         ).to_dict()
 
@@ -279,6 +283,7 @@ class CostService:
         self._prev_reading = state.prev_reading
         self._accumulated_transmission = state.accumulated_transmission_cost
         self._accumulated_tax = state.accumulated_tax_cost
+        self._accumulated_price_curve = state.accumulated_price_curve_cost
         self._total_energy_kwh = state.total_energy_kwh
 
         if state.peaks:
@@ -328,6 +333,7 @@ class CostService:
         self._billing_period_start = period_start(now, self._billing_duration)
         self._accumulated_transmission = 0.0
         self._accumulated_tax = 0.0
+        self._accumulated_price_curve = 0.0
         self._total_energy_kwh = 0.0
         self._current_window_start = None
         self._current_window_start_reading = None
@@ -374,18 +380,27 @@ class CostService:
                     tracker = self._get_or_create_tracker(self._current_window_component_id)
                     tracker.try_add_peak(self._current_window_start, self._current_window_peak)
 
-    def _energy_rates(self, snapshot: ActiveTariffSnapshot) -> tuple[float, float]:
-        """Extract current transmission and tax rates from the snapshot."""
+    def _energy_rates(
+        self, snapshot: ActiveTariffSnapshot
+    ) -> tuple[float, float, float]:
+        """Extract current transmission, tax, and price-curve rates from the snapshot.
+
+        Components with ``url`` set are price-curve (dynamic) components and
+        their rate is tracked separately from static transmission.
+        """
         vat_mode = self._vat_mode
         transmission = 0.0
         tax = 0.0
+        price_curve = 0.0
         for comp in snapshot.active_energy_components:
             price = comp.price.price_inc_vat if vat_mode == "inc_vat" else comp.price.price_ex_vat
             if comp.reference == "tax":
                 tax += price
+            elif comp.url:
+                price_curve += price
             else:
                 transmission += price
-        return transmission, tax
+        return transmission, tax, price_curve
 
     def _compute_peak_cost(self, snapshot: ActiveTariffSnapshot) -> float:
         """charged_peak for the active component × its price."""

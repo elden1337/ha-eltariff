@@ -50,9 +50,7 @@ async def async_setup_entry(
     # Add cost-service sensors if an energy sensor (and thus CostService) is configured.
     cost_service = hass.data[DOMAIN].get(f"{entry.entry_id}_cost_service")
     if cost_service is not None:
-        from .charged_peak import ChargedPeakSensor
         from .observed_peak import ObservedPeakSensor
-        from .peak_cost import PeakCostSensor
         from .running_cost import RunningCostSensor
         from .tax_cost import TaxCostSensor
         from .transmission_cost import TransmissionCostSensor
@@ -61,10 +59,33 @@ async def async_setup_entry(
             RunningCostSensor(coordinator, entry, cost_service, vat_mode),
             TaxCostSensor(coordinator, entry, cost_service, vat_mode),
             TransmissionCostSensor(coordinator, entry, cost_service, vat_mode),
-            PeakCostSensor(coordinator, entry, cost_service, vat_mode),
-            ChargedPeakSensor(coordinator, entry, cost_service, vat_mode),
             ObservedPeakSensor(coordinator, entry, cost_service, vat_mode),
         ])
+
+        # Only spawn peak-cost and charged-peak sensors when the tariff has
+        # an active power component (i.e. a traditional peak billing model).
+        has_power = (
+            coordinator.data
+            and coordinator.data.snapshot
+            and coordinator.data.snapshot.active_power_component is not None
+        )
+        if has_power:
+            from .charged_peak import ChargedPeakSensor
+            from .peak_cost import PeakCostSensor
+
+            entities.extend([
+                PeakCostSensor(coordinator, entry, cost_service, vat_mode),
+                ChargedPeakSensor(coordinator, entry, cost_service, vat_mode),
+            ])
+
+        # Add price-curve running cost sensor when dynamic pricing components exist.
+        has_price_curves = coordinator.data and coordinator.data.price_curves
+        if has_price_curves:
+            from .price_curve_cost import PriceCurveCostSensor
+
+            entities.append(
+                PriceCurveCostSensor(coordinator, entry, cost_service, vat_mode),
+            )
 
     async_add_entities(entities)
 

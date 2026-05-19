@@ -17,7 +17,6 @@ from custom_components.eltariff.billing.iso_duration import parse_iso_duration
 from custom_components.eltariff.billing.models import CostBreakdown, CostServiceState, PeakRecord
 from custom_components.eltariff.billing.peak_tracker import PeakTracker
 
-
 P1D = parse_iso_duration("P1D")
 PT1H = parse_iso_duration("PT1H")
 P1M = parse_iso_duration("P1M")
@@ -27,12 +26,15 @@ def _dt(year: int, month: int, day: int, hour: int = 12) -> datetime:
     return datetime(year, month, day, hour, 0, 0, tzinfo=UTC)
 
 
-def _make_energy_component(reference: str, price_inc_vat: float, vat_ratio: float = 1.25) -> MagicMock:
+def _make_energy_component(
+    reference: str, price_inc_vat: float, vat_ratio: float = 1.25
+) -> MagicMock:
     comp = MagicMock()
     comp.reference = reference
     comp.price.price_inc_vat = price_inc_vat
     comp.price.price_ex_vat = price_inc_vat / vat_ratio
     comp.price.currency = "SEK"
+    comp.url = None
     return comp
 
 
@@ -623,7 +625,10 @@ class TestCostServiceGetBreakdown:
         svc.on_energy_update(10.0, _dt(2025, 1, 2, 9), snap)
         svc._peak_tracker.try_add_peak(_dt(2025, 1, 2), 5.0)
         bd = svc.get_breakdown(_dt(2025, 1, 2, 9), snap)
-        assert bd.total == pytest.approx(bd.peak_cost + bd.transmission_cost + bd.tax_cost + bd.fixed_cost)
+        assert bd.total == pytest.approx(
+            bd.peak_cost + bd.transmission_cost + bd.tax_cost
+            + bd.fixed_cost + bd.price_curve_cost
+        )
 
     def test_fixed_cost_1200_annual_is_100_monthly(self):
         svc = CostService()
@@ -632,3 +637,268 @@ class TestCostServiceGetBreakdown:
         svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
         bd = svc.get_breakdown(_dt(2025, 1, 1, 8), snap)
         assert bd.fixed_cost == pytest.approx(100.0)
+
+
+# ── Price-curve cost accumulation ───────────────────────────────────────────────
+#
+# Components with ``url`` set represent dynamic price-curve pricing (hourly grid
+# tariff curves).  Their cost must accumulate separately from static
+# transmission so a dedicated sensor can expose it.
+
+
+def _make_price_curve_component(
+    reference: str, price_inc_vat: float, url: str = "/prices/fake-uuid"
+) -> MagicMock:
+    """Energy component with ``url`` set — treated as price-curve."""
+    comp = _make_energy_component(reference, price_inc_vat)
+    comp.url = url
+    return comp
+
+
+class TestPriceCurveCostAccumulation:
+    def test_price_curve_cost_separate_from_transmission(self):
+        """Energy component with url goes into price_curve_cost, not transmission."""
+        svc = CostService()
+        comps = [
+            _make_energy_component("main", 0.5),             # static transmission
+            _make_price_curve_component("dynamic", 1.2),     # price-curve
+            _make_energy_component("tax", 0.3),
+        ]
+        snap = _make_snapshot(energy_components=comps)
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        assert bd.transmission_cost == pytest.approx(5.0)    # 10 × 0.5
+        assert bd.price_curve_cost == pytest.approx(12.0)    # 10 × 1.2
+        assert bd.tax_cost == pytest.approx(3.0)             # 10 × 0.3
+
+    def test_price_curve_only_tariff_no_static_transmission(self):
+        """Tariff with only price-curve + tax, no static transmission."""
+        svc = CostService()
+        comps = [
+            _make_price_curve_component("dynamic", 0.8),
+            _make_energy_component("tax", 0.2),
+        ]
+        snap = _make_snapshot(energy_components=comps)
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(5.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        assert bd.transmission_cost == pytest.approx(0.0)
+        assert bd.price_curve_cost == pytest.approx(4.0)    # 5 × 0.8
+        assert bd.tax_cost == pytest.approx(1.0)
+
+    def test_price_curve_cost_included_in_total(self):
+        svc = CostService()
+        comps = [
+            _make_energy_component("main", 0.5),
+            _make_price_curve_component("dynamic", 1.0),
+            _make_energy_component("tax", 0.3),
+        ]
+        snap = _make_snapshot(energy_components=comps)
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        expected = (
+            bd.peak_cost + bd.transmission_cost + bd.tax_cost
+            + bd.fixed_cost + bd.price_curve_cost
+        )
+        assert bd.total == pytest.approx(expected)
+        assert bd.price_curve_cost > 0
+
+    def test_price_curve_cost_resets_on_new_billing_period(self):
+        svc = CostService()
+        comps = [_make_price_curve_component("dynamic", 1.0)]
+        snap = _make_snapshot(energy_components=comps)
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 15, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 15, 9), snap)
+
+        # New billing period — Feb
+        svc.on_energy_update(15.0, _dt(2025, 2, 1, 0), snap)
+        bd = svc.get_breakdown(_dt(2025, 2, 1, 0), snap)
+        # Only 5 kWh delta (10→15) lands in the new period
+        assert bd.price_curve_cost == pytest.approx(5.0)
+
+    def test_varying_price_curve_rate_accumulates_correctly(self):
+        """Price changes between readings (simulating hourly curve updates)."""
+        svc = CostService()
+        comps_high = [_make_price_curve_component("dynamic", 2.0)]
+        comps_low = [_make_price_curve_component("dynamic", 0.5)]
+        snap_high = _make_snapshot(energy_components=comps_high)
+        snap_low = _make_snapshot(energy_components=comps_low)
+
+        svc.configure_from_snapshot(snap_high)
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap_high)
+        svc.on_energy_update(5.0, _dt(2025, 1, 1, 9), snap_high)   # 5 × 2.0 = 10
+        svc.on_energy_update(8.0, _dt(2025, 1, 1, 10), snap_low)   # 3 × 0.5 = 1.5
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 10), snap_low)
+        assert bd.price_curve_cost == pytest.approx(11.5)
+
+    def test_price_curve_with_ex_vat(self):
+        svc = CostService()
+        svc.vat_mode = "ex_vat"
+        comps = [_make_price_curve_component("dynamic", 1.25)]  # inc_vat=1.25 → ex_vat=1.0
+        snap = _make_snapshot(energy_components=comps)
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        assert bd.price_curve_cost == pytest.approx(10.0)  # 10 × 1.0
+
+
+class TestPriceCurveCostPersistence:
+    def test_save_state_includes_price_curve(self):
+        svc = CostService()
+        comps = [_make_price_curve_component("dynamic", 1.0)]
+        snap = _make_snapshot(energy_components=comps)
+        svc.configure_from_snapshot(snap)
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 1, 9), snap)
+
+        saved = svc.save_state()
+        assert saved["acc_price_curve"] == pytest.approx(10.0)
+
+    def test_restore_state_restores_price_curve(self):
+        svc = CostService()
+        snap = _make_snapshot()
+        svc.configure_from_snapshot(snap)
+
+        saved = {
+            "billing_period_start": "2025-01-01T00:00:00+00:00",
+            "peaks": [],
+            "acc_transmission": 5.0,
+            "acc_tax": 2.0,
+            "acc_price_curve": 7.5,
+            "total_energy_kwh": 10.0,
+        }
+        svc.restore_state(saved)
+        bd = svc.get_breakdown(_dt(2025, 1, 15, 8), snap)
+        assert bd.price_curve_cost == pytest.approx(7.5)
+
+    def test_restore_state_without_price_curve_defaults_to_zero(self):
+        """Backward compat: old saved states won't have acc_price_curve."""
+        svc = CostService()
+        snap = _make_snapshot()
+        svc.configure_from_snapshot(snap)
+
+        saved = {
+            "billing_period_start": "2025-01-01T00:00:00+00:00",
+            "peaks": [],
+            "acc_transmission": 5.0,
+            "acc_tax": 2.0,
+            "total_energy_kwh": 10.0,
+        }
+        svc.restore_state(saved)
+        bd = svc.get_breakdown(_dt(2025, 1, 15, 8), snap)
+        assert bd.price_curve_cost == pytest.approx(0.0)
+
+
+# ── Observed peak without power component ───────────────────────────────────────
+#
+# When a tariff has no power_price (e.g. price-curve-only tariffs), there is
+# no billed peak, but observed peak should still be tracked so users can
+# monitor consumption against any contract ceiling.
+
+
+class TestObservedPeakWithoutPowerComponent:
+    def _no_power_snap(self, energy_rate: float = 1.0) -> MagicMock:
+        """Snapshot with energy components but NO active power component."""
+        comps = [_make_energy_component("main", energy_rate)]
+        snap = _make_snapshot(energy_components=comps)
+        snap.active_power_component = None
+        return snap
+
+    def test_observed_peak_tracked_without_power_component(self):
+        svc = CostService()
+        snap = self._no_power_snap()
+        svc.configure_from_snapshot(snap)
+
+        # Readings within the same 1-hour window so energy accumulates as peak
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(2.0, datetime(2025, 1, 1, 8, 30, tzinfo=UTC), snap)
+        svc.on_energy_update(5.0, datetime(2025, 1, 1, 8, 45, tzinfo=UTC), snap)
+        # Next hour triggers window finalisation
+        svc.on_energy_update(5.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        assert bd.observed_peak_kwh > 0
+
+    def test_peak_cost_is_zero_without_power_component(self):
+        svc = CostService()
+        snap = self._no_power_snap()
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        assert bd.peak_cost == 0.0
+
+    def test_charged_peak_tracked_but_zero_cost_without_power(self):
+        """charged_peak still has a value (for reference), but it costs nothing."""
+        svc = CostService()
+        snap = self._no_power_snap()
+        svc.configure_from_snapshot(snap)
+
+        svc.on_energy_update(0.0, _dt(2025, 1, 1, 8), snap)
+        svc.on_energy_update(5.0, datetime(2025, 1, 1, 8, 30, tzinfo=UTC), snap)
+        svc.on_energy_update(5.0, _dt(2025, 1, 1, 9), snap)
+
+        bd = svc.get_breakdown(_dt(2025, 1, 1, 9), snap)
+        assert bd.peak_cost == 0.0
+
+
+# ── CostBreakdown model ────────────────────────────────────────────────────────
+
+
+class TestCostBreakdownPriceCurve:
+    def test_price_curve_cost_in_total(self):
+        from custom_components.eltariff.billing.models import CostBreakdown
+
+        bd = CostBreakdown(
+            peak_cost=10.0,
+            transmission_cost=5.0,
+            tax_cost=3.0,
+            fixed_cost=2.0,
+            price_curve_cost=7.0,
+        )
+        assert bd.total == pytest.approx(27.0)
+
+    def test_price_curve_cost_defaults_to_zero(self):
+        from custom_components.eltariff.billing.models import CostBreakdown
+
+        bd = CostBreakdown(peak_cost=10.0, transmission_cost=5.0)
+        assert bd.price_curve_cost == 0.0
+        assert bd.total == pytest.approx(15.0)
+
+
+class TestCostServiceStatePriceCurve:
+    def test_to_dict_includes_acc_price_curve(self):
+        state = CostServiceState(
+            accumulated_transmission_cost=5.0,
+            accumulated_tax_cost=2.0,
+            accumulated_price_curve_cost=3.5,
+        )
+        d = state.to_dict()
+        assert d["acc_price_curve"] == 3.5
+
+    def test_from_dict_parses_acc_price_curve(self):
+        state = CostServiceState.from_dict({"acc_price_curve": 12.0})
+        assert state.accumulated_price_curve_cost == 12.0
+
+    def test_from_dict_missing_acc_price_curve_defaults_zero(self):
+        state = CostServiceState.from_dict({})
+        assert state.accumulated_price_curve_cost == 0.0

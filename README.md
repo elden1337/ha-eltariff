@@ -49,16 +49,23 @@ Entity IDs are prefixed with the device name derived from your config entry (e.g
 | `…peaks_used_for_average` | peaks | Number of peak hours used in the effect tariff average |
 | `…next_tariff_transition` | timestamp | Next datetime when the active tariff band changes |
 | `…high_tariff_active` | — | `on` when a peak-priced power component is active |
+| `…price_curve` | SEK/kWh | Current-hour price from a dynamic price-curve component (see [Price curves](#price-curves)) |
 
 Each sensor exposes only the state attributes relevant to it. The `today_schedule` attribute (hourly slots with `start`, `end`, `band`, and `price_inc_vat`) is available on `energy_price_total`, `energy_transfer_price`, and `next_tariff_transition`.
 
 ### Running cost sensor
 
-When an energy sensor is configured, the integration adds one extra sensor:
+When an energy sensor is configured, the integration adds cost-tracking sensors:
 
 | Entity | Unit | Description |
 |--------|------|-------------|
 | `…running_cost` | SEK | Total accumulated grid cost for the current billing period |
+| `…transmission_cost` | SEK | Running transmission (energy transfer) cost |
+| `…tax_cost` | SEK | Running energy tax cost |
+| `…price_curve_cost` | SEK | Running price-curve cost (only if dynamic price-curve components exist) |
+| `…peak_cost` | SEK | Peak power cost (only if tariff has a power component) |
+| `…observed_peak` | kW | Highest peak power recorded this billing period |
+| `…charged_peak` | kW | Peak power you will be billed for (only if tariff has a power component) |
 
 The sensor state is the sum of all cost components. The breakdown is available as attributes:
 
@@ -67,11 +74,9 @@ The sensor state is the sum of all cost components. The breakdown is available a
 | `peak_cost` | Charged peak (kWh) × active power price (SEK/kW) |
 | `transmission_cost` | Accumulated energy (kWh) × transfer rate |
 | `tax_cost` | Accumulated energy (kWh) × tax rate |
+| `price_curve_cost` | Accumulated energy (kWh) × dynamic price-curve rate |
 | `fixed_cost` | Annual fixed cost prorated to elapsed billing period |
-| `observed_peak_kwh` | Lowest stored peak — the floor you've committed to |
-| `charged_peak_kwh` | Average of stored peaks — what you'll be billed for |
 | `total_energy_kwh` | Total energy consumed this billing period |
-| `stored_peaks` | List of stored peak records (`dt`, `kwh`) |
 | `billing_period_start` | Start of the current billing period |
 | `billing_period_end` | End of the current billing period |
 
@@ -82,7 +87,39 @@ Peak tracking uses the tariff's `peakIdentificationSettings` from the API:
 - **`numberOfPeaksForAverageCalculation`** (e.g. `3`) — The top N peaks stored. The charged peak is their average.
 - **`billingPeriod`** (e.g. `P1M`) — All peaks and accumulated costs reset at the start of each new billing period.
 
+> **Note:** If your tariff has no power (effect) component — common with price-curve-only tariffs — the integration still tracks the **observed peak** for reference (useful when the contract has an absolute power ceiling), but will not create the `charged_peak` or `peak_cost` sensors since there is no peak billing.
+
 Peaks and accumulated costs **persist across HA restarts** via Home Assistant's restore-state mechanism — you won't lose your monthly data on a reboot.
+
+## Price curves
+
+Some DSOs define dynamic grid tariff components whose price varies hourly — published via the API's `/prices` endpoint. These are **not** electricity spot prices; they are grid tariff curves set by the DSO.
+
+When a tariff contains a component with a `url` field (pointing to `/prices/{componentId}`), the integration automatically:
+
+1. **Fetches today's prices** on the first coordinator cycle.
+2. **Polls for tomorrow's prices** starting at noon (local time) every ~5 minutes, with per-instance jitter to avoid thundering herd.
+3. **Overlays** the hourly price into the tariff snapshot so existing sensors (`energy_price_total`, `energy_transfer_price`) reflect the live rate.
+
+### Price curve sensor
+
+For each dynamic component the integration creates a `…price_curve` sensor:
+
+| Attribute | Description |
+|-----------|-------------|
+| `today` | List of hourly entries for today (`start`, `end`, `price_ex_vat`, `price_inc_vat`) |
+| `tomorrow` | List of hourly entries for tomorrow (empty until published) |
+| `component_id` | UUID of the underlying price component |
+
+The sensor state is the price for the current hour.
+
+### Price curve running cost
+
+When an energy sensor is configured and price-curve components exist, a `…price_curve_cost` sensor tracks the accumulated cost from those components separately from the static transmission fee.  This cost is also included in the `…running_cost` total and its `price_curve_cost` attribute.
+
+### Coexistence with static tariffs
+
+A tariff can have both static energy components (fixed transfer fee) and dynamic price-curve components. The integration handles both: static components accumulate into `transmission_cost`, dynamic components into `price_curve_cost`, and both contribute to `running_cost`.
 
 ## Optional step 4 — enable running cost tracking
 
@@ -184,5 +221,5 @@ automation:
 ## Known limitations
 
 - **Catalogue API not implemented.** The RI-SE API spec includes an endpoint for looking up which DSO serves a given metering point (MPID). This integration does not use it — you must select your DSO manually.
-- **`/prices` endpoint not consumed.** Some DSOs expose a `/prices` endpoint with time-varying energy prices. Most DSOs do not populate it yet, so this integration ignores it. Use Nordpool or Tibber for spot prices.
+- **Price curves not yet live.** The `/prices` endpoint is implemented and tested, but no DSO currently populates it. The integration is ready to consume it once a DSO starts publishing dynamic price curves.
 - **Running cost requires an energy sensor.** The integration does not integrate power readings itself. You need to provide a cumulative kWh sensor (see [Preparing an energy sensor](#preparing-an-energy-sensor)).

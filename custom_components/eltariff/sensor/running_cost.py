@@ -55,6 +55,7 @@ class RunningCostSensor(CostSensorBase):
             "transmission_cost": round(bd.transmission_cost, 4),
             "tax_cost": round(bd.tax_cost, 4),
             "fixed_cost": round(bd.fixed_cost, 4),
+            "price_curve_cost": round(bd.price_curve_cost, 4),
             "total_energy_kwh": round(bd.total_energy_kwh, 4),
             "billing_period_start": (
                 bd.billing_period_start.isoformat() if bd.billing_period_start else None

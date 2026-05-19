@@ -34,6 +34,7 @@ class CostBreakdown:
     transmission_cost: float = 0.0
     tax_cost: float = 0.0
     fixed_cost: float = 0.0
+    price_curve_cost: float = 0.0
 
     observed_peak_kwh: float = 0.0
     charged_peak_kwh: float = 0.0
@@ -48,7 +49,13 @@ class CostBreakdown:
 
     @property
     def total(self) -> float:
-        return self.peak_cost + self.transmission_cost + self.tax_cost + self.fixed_cost
+        return (
+            self.peak_cost
+            + self.transmission_cost
+            + self.tax_cost
+            + self.fixed_cost
+            + self.price_curve_cost
+        )
 
     @property
     def observed_peak_kw(self) -> float:
@@ -74,6 +81,7 @@ class CostServiceState:
     prev_reading: float | None = None
     accumulated_transmission_cost: float = 0.0
     accumulated_tax_cost: float = 0.0
+    accumulated_price_curve_cost: float = 0.0
     total_energy_kwh: float = 0.0
 
     def to_dict(self) -> dict:
@@ -86,6 +94,7 @@ class CostServiceState:
             "prev_reading": self.prev_reading,
             "acc_transmission": self.accumulated_transmission_cost,
             "acc_tax": self.accumulated_tax_cost,
+            "acc_price_curve": self.accumulated_price_curve_cost,
             "total_energy_kwh": self.total_energy_kwh,
         }
 
@@ -100,5 +109,6 @@ class CostServiceState:
             prev_reading=d.get("prev_reading"),
             accumulated_transmission_cost=float(d.get("acc_transmission", 0.0)),
             accumulated_tax_cost=float(d.get("acc_tax", 0.0)),
+            accumulated_price_curve_cost=float(d.get("acc_price_curve", 0.0)),
             total_energy_kwh=float(d.get("total_energy_kwh", 0.0)),
         )
