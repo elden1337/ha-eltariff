@@ -8,24 +8,32 @@ jobs:
   release_zip_file:
     name: Prepare release asset
     runs-on: ubuntu-latest
+    
+    # ⬇️ REQUIRED: This grants permission to upload assets to the release
+    permissions:
+      contents: write
+
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4
 
+      # Note: Upgraded from v2 to v5 for faster caching and node20 support
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
+      # Note: Changed to a single line cd/zip to ensure reliable directory context
       - name: ZIP eltariff Dir
         run: |
-          cd ${{ github.workspace }}/custom_components/eltariff
-          zip eltariff_api.zip -r ./
+          cd ${{ github.workspace }}/custom_components/eltariff && zip -r eltariff_api.zip .
+
       - name: Upload zip to release
         uses: svenstaro/upload-release-action@2.7.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ github.workspace }}/custom_components/eltariff/eltariff_api.zip
           asset_name: eltariff_api.zip
-          tag: ${{ github.ref }}
+          # ⬇️ CHANGED: Using github.event.release.tag_name is safer for release events
+          tag: ${{ github.event.release.tag_name }}
           overwrite: true
