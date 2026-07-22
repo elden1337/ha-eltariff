@@ -709,6 +709,48 @@ class TestRecurringPeriod:
         assert rp.frequency is None
 
 
+# ── PriceComponent ─────────────────────────────────────────────────────────────
+
+
+class TestPriceComponent:
+    _BASE_DICT = {
+        "id": "c1",
+        "reference": "main",
+        "type": "energy",
+        "description": "Transfer",
+        "validPeriod": {"fromIncluding": "2025-01-01"},
+        "price": {"priceExVat": 0.5, "priceIncVat": 0.625, "currency": "SEK"},
+    }
+
+    def test_from_dict_null_recurring_periods_defaults_to_empty(self) -> None:
+        d = {**self._BASE_DICT, "recurringPeriods": None}
+        pc = PriceComponent.from_dict(d)
+        assert pc.recurring_periods == []
+
+    def test_from_dict_missing_recurring_periods_defaults_to_empty(self) -> None:
+        pc = PriceComponent.from_dict(self._BASE_DICT)
+        assert pc.recurring_periods == []
+
+    def test_from_dict_null_peak_identification_settings(self) -> None:
+        d = {**self._BASE_DICT, "peakIdentificationSettings": None}
+        pc = PriceComponent.from_dict(d)
+        assert pc.peak_identification_settings is None
+
+    def test_from_dict_null_spot_price_settings(self) -> None:
+        d = {**self._BASE_DICT, "spotPriceSettings": None}
+        pc = PriceComponent.from_dict(d)
+        assert pc.spot_price_settings is None
+
+    def test_from_dict_present_spot_price_settings(self) -> None:
+        d = {
+            **self._BASE_DICT,
+            "spotPriceSettings": {"multiplier": 1.05, "currency": "SEK"},
+        }
+        pc = PriceComponent.from_dict(d)
+        assert pc.spot_price_settings is not None
+        assert pc.spot_price_settings.multiplier == 1.05
+
+
 # ── PriceGroup ─────────────────────────────────────────────────────────────────
 
 

@@ -39,10 +39,12 @@ class PriceComponent:
             description=d.get("description", ""),
             valid_period=ValidPeriod.from_dict(d["validPeriod"]),
             price=Price.from_dict(d["price"]),
-            recurring_periods=[RecurringPeriod.from_dict(r) for r in d.get("recurringPeriods", [])],
+            recurring_periods=[
+                RecurringPeriod.from_dict(r) for r in (d.get("recurringPeriods") or [])
+            ],
             peak_identification_settings=(
                 PeakIdentificationSettings.from_dict(d["peakIdentificationSettings"])
-                if "peakIdentificationSettings" in d
+                if d.get("peakIdentificationSettings") is not None
                 else None
             ),
             name=d.get("name"),
@@ -50,7 +52,7 @@ class PriceComponent:
             url=d.get("url"),
             spot_price_settings=(
                 SpotPriceSettings.from_dict(d["spotPriceSettings"])
-                if "spotPriceSettings" in d
+                if d.get("spotPriceSettings") is not None
                 else None
             ),
             priced_period=d.get("pricedPeriod"),
