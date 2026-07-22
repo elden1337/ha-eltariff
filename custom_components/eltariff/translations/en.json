@@ -18,20 +18,11 @@
         "title": "Options",
         "data": {
           "vat_mode": "VAT mode",
-          "bearer_token": "Bearer token (optional)"
-        }
-      },
-      "options": {
-        "title": "Options",
-        "data": {
-          "vat_mode": "VAT mode",
           "bearer_token": "Bearer token (optional)",
-          "power_sensor_entity_id": "Power meter sensor (optional)",
-          "power_sensor_unit": "Power unit"
+          "energy_sensor_entity_id": "Energy sensor (optional)"
         },
         "data_description": {
-          "power_sensor_entity_id": "A sensor reporting real-time power consumption. Used to calculate actual peak and billing-period cost.",
-          "power_sensor_unit": "Unit reported by the selected sensor."
+          "energy_sensor_entity_id": "A cumulative kWh energy sensor. Enables running-cost, observed-peak, and charged-peak tracking."
         }
       }
     },
@@ -53,12 +44,10 @@
         "data": {
           "vat_mode": "VAT mode",
           "bearer_token": "Bearer token (optional)",
-          "power_sensor_entity_id": "Power meter sensor (optional)",
-          "power_sensor_unit": "Power unit"
+          "energy_sensor_entity_id": "Energy sensor (optional)"
         },
         "data_description": {
-          "power_sensor_entity_id": "A sensor reporting real-time power consumption. Used to calculate actual peak and billing-period cost.",
-          "power_sensor_unit": "Unit reported by the selected sensor."
+          "energy_sensor_entity_id": "A cumulative kWh energy sensor. Enables running-cost, observed-peak, and charged-peak tracking."
         }
       }
     }

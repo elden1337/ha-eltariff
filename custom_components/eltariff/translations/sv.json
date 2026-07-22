@@ -20,12 +20,10 @@
         "data": {
           "vat_mode": "Momsläge",
           "bearer_token": "Bearer-token (valfritt)",
-          "power_sensor_entity_id": "Effektmätarsensor (valfritt)",
-          "power_sensor_unit": "Effektenhet"
+          "energy_sensor_entity_id": "Energisensor (valfritt)"
         },
         "data_description": {
-          "power_sensor_entity_id": "En sensor som rapporterar realtidseffekten. Används för att beräkna faktisk toppbelastning och kostnad under faktureringsperioden.",
-          "power_sensor_unit": "Enhet som används av den valda sensorn."
+          "energy_sensor_entity_id": "En ackumulerande energisensor i kWh. Aktiverar spårning av löpande kostnad, observerad toppbelastning och debiterad toppbelastning."
         }
       }
     },
@@ -45,12 +43,10 @@
         "data": {
           "vat_mode": "Momsläge",
           "bearer_token": "Bearer-token (valfritt)",
-          "power_sensor_entity_id": "Effektmätarsensor (valfritt)",
-          "power_sensor_unit": "Effektenhet"
+          "energy_sensor_entity_id": "Energisensor (valfritt)"
         },
         "data_description": {
-          "power_sensor_entity_id": "En sensor som rapporterar realtidseffekten. Används för att beräkna faktisk toppbelastning och kostnad under faktureringsperioden.",
-          "power_sensor_unit": "Enhet som används av den valda sensorn."
+          "energy_sensor_entity_id": "En ackumulerande energisensor i kWh. Aktiverar spårning av löpande kostnad, observerad toppbelastning och debiterad toppbelastning."
         }
       }
     }
