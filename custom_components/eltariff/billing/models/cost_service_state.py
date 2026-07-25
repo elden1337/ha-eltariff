@@ -1,69 +1,8 @@
-"""Data models for the billing / cost-tracking layer."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
 
-
-@dataclass(frozen=True)
-class PeakRecord:
-    """A single recorded peak: timestamp and energy value (kWh for the window)."""
-
-    dt: datetime
-    value: float  # kWh consumed during the peak_duration window
-    component_id: str = ""  # power component active when the peak was recorded
-
-    def to_dict(self) -> dict:
-        return {"dt": self.dt.isoformat(), "value": self.value, "component_id": self.component_id}
-
-    @classmethod
-    def from_dict(cls, d: dict) -> PeakRecord:
-        return cls(
-            dt=datetime.fromisoformat(d["dt"]),
-            value=float(d["value"]),
-            component_id=d.get("component_id", ""),
-        )
-
-
-@dataclass
-class CostBreakdown:
-    """Running cost breakdown for the current billing period."""
-
-    peak_cost: float = 0.0
-    transmission_cost: float = 0.0
-    tax_cost: float = 0.0
-    fixed_cost: float = 0.0
-    price_curve_cost: float = 0.0
-
-    observed_peak_kwh: float = 0.0
-    charged_peak_kwh: float = 0.0
-    # Duration of the peak measurement window in hours, used to convert kWh → kW.
-    peak_duration_hours: float = 1.0
-    stored_peaks: list[PeakRecord] = field(default_factory=list)
-    total_energy_kwh: float = 0.0
-
-    billing_period_start: datetime | None = None
-    billing_period_end: datetime | None = None
-    currency: str = "SEK"
-
-    @property
-    def total(self) -> float:
-        return (
-            self.peak_cost
-            + self.transmission_cost
-            + self.tax_cost
-            + self.fixed_cost
-            + self.price_curve_cost
-        )
-
-    @property
-    def observed_peak_kw(self) -> float:
-        return self.observed_peak_kwh / self.peak_duration_hours if self.peak_duration_hours > 0 else 0.0
-
-    @property
-    def charged_peak_kw(self) -> float:
-        return self.charged_peak_kwh / self.peak_duration_hours if self.peak_duration_hours > 0 else 0.0
+from .peak_record import PeakRecord
 
 
 @dataclass
@@ -87,7 +26,7 @@ class CostServiceState:
     def to_dict(self) -> dict:
         return {
             "billing_period_start": self.billing_period_start_iso,
-            "peaks": [p.to_dict() for p in self.peaks],
+            "peaks": [p.to_dict() for p in self.peaks if hasattr(p, 'to_dict')],
             "window_start": self.current_window_start_iso,
             "window_start_reading": self.current_window_start_reading,
             "window_peak": self.current_window_peak,
