@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Local Workspace
+
+Always check `LOCAL_WORKSPACE.md` for local development notes, setup quirks, and environment-specific information. This file is gitignored and may contain frequently changing local configuration — always read it before starting work.
+
 ## Commands
 
 ```bash

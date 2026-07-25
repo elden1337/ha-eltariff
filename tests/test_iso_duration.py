@@ -20,7 +20,6 @@ from custom_components.eltariff.billing.iso_duration import (
     period_start,
 )
 
-
 # ── parse_iso_duration ─────────────────────────────────────────────────────────
 
 
@@ -256,7 +255,8 @@ class TestPeriodEnd:
 
     def test_hourly_9am_ends_10am(self):
         dt = datetime(2025, 6, 15, 9, 30, tzinfo=UTC)
-        assert period_end(dt, parse_iso_duration("PT1H")) == datetime(2025, 6, 15, 10, 0, tzinfo=UTC)
+        assert period_end(dt, parse_iso_duration("PT1H")) == \
+            datetime(2025, 6, 15, 10, 0, tzinfo=UTC)
 
     def test_q2_ends_july_1(self):
         dt = datetime(2025, 5, 15, tzinfo=UTC)
@@ -276,7 +276,8 @@ class TestPeriodEnd:
 
     def test_30min_ends_30_min_later(self):
         dt = datetime(2025, 6, 15, 9, 15, tzinfo=UTC)
-        assert period_end(dt, parse_iso_duration("PT30M")) == datetime(2025, 6, 15, 9, 30, tzinfo=UTC)
+        assert period_end(dt, parse_iso_duration("PT30M")) == \
+            datetime(2025, 6, 15, 9, 30, tzinfo=UTC)
 
     def test_end_is_strictly_after_start(self):
         dt = datetime(2025, 6, 15, 9, 30, tzinfo=UTC)

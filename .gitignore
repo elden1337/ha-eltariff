@@ -318,6 +318,9 @@ cython_debug/
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
 poetry.toml
 
+# Local agent notes (not for commit)
+LOCAL_WORKSPACE.md
+
 # ruff
 .ruff_cache/
 
