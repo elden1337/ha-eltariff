@@ -23,7 +23,6 @@ _LOGGER = logging.getLogger(__name__)
 class CostSensorBase(CoordinatorEntity[EltariffCoordinator], RestoreEntity, SensorEntity):
     _attr_has_entity_name = True
     _attr_state_class = SensorStateClass.TOTAL
-    _unrecorded_attributes = frozenset({"cost_service_state"})
 
     def __init__(
         self,
