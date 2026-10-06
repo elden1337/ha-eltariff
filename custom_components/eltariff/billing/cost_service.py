@@ -259,6 +259,9 @@ class CostService:
         for cid, tracker in self._peak_trackers.items():
             for record in tracker.serialise():
                 all_peaks.append(PeakRecord(dt=record.dt, value=record.value, component_id=cid))
+        # Peaks restored but not yet applied (service not configured) must not be lost.
+        if self._deferred_peaks:
+            all_peaks.extend(self._deferred_peaks)
 
         return CostServiceState(
             billing_period_start_iso=(

@@ -666,6 +666,16 @@ class TestCostServiceSaveRestoreState:
         bd = svc.get_breakdown(_dt(2025, 2, 3, 8), snap)
         assert bd.stored_peaks == []
 
+    def test_save_before_configure_keeps_deferred_peaks(self):
+        state = CostServiceState(
+            billing_period_start_iso=datetime(2025, 1, 1, tzinfo=UTC).isoformat(),
+            peaks=[PeakRecord(dt=_dt(2025, 1, 5), value=8.0, component_id="pc1")],
+        )
+        svc = CostService()
+        svc.restore_state(state.to_dict())
+        saved = svc.save_state()
+        assert [(p["value"], p["component_id"]) for p in saved["peaks"]] == [(8.0, "pc1")]
+
     def test_restore_malformed_data_does_not_crash(self):
         svc = CostService()
         svc.configure_from_snapshot(_make_snapshot())
