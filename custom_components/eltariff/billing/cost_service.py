@@ -46,7 +46,7 @@ def _parse_dt(value: str | None) -> datetime | None:
     try:
         dt = datetime.fromisoformat(value)
     except (TypeError, ValueError):
-        _LOGGER.warning("Ignoring malformed timestamp in saved state: %r", value)
+        _LOGGER.warning("Ignoring malformed timestamp in saved state")
         return None
     return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
 
@@ -73,6 +73,8 @@ class CostService:
         # Billing period state
         self._billing_period_start: datetime | None = None
         self._deferred_peaks: list[PeakRecord] | None = None
+        # Restore time, kept until configured so stale state can be discarded.
+        self._pending_restore_now: datetime | None = None
 
         # Energy window state
         self._current_window_start: datetime | None = None
@@ -156,6 +158,12 @@ class CostService:
             )
 
         self._configured = True
+
+        # State restored before configuration: discard it if it belongs to a
+        # previous billing period (now that the billing duration is known).
+        if self._pending_restore_now is not None:
+            self._discard_if_previous_period(self._pending_restore_now)
+            self._pending_restore_now = None
 
         # Apply peaks that were restored before the service was configured.
         if self._deferred_peaks:
@@ -295,27 +303,7 @@ class CostService:
             _LOGGER.warning("Ignoring malformed cost service state", exc_info=True)
             return False
 
-        billing_period_start = _parse_dt(state.billing_period_start_iso)
-
-        if (
-            now is not None
-            and self._configured
-            and billing_period_start is not None
-            and not is_same_period(now, billing_period_start, self._billing_duration)
-        ):
-            # Saved state belongs to a previous billing period: discard the
-            # accumulators and peaks but keep the last meter reading so the
-            # energy delta continues correctly.
-            _LOGGER.info(
-                "Discarding restored cost service state from previous billing period (%s)",
-                billing_period_start.isoformat(),
-            )
-            self._reset_billing_period(now)
-            self._prev_reading = state.prev_reading
-            self._state_restored = True
-            return True
-
-        self._billing_period_start = billing_period_start
+        self._billing_period_start = _parse_dt(state.billing_period_start_iso)
         self._current_window_start = _parse_dt(state.current_window_start_iso)
         self._current_window_start_reading = state.current_window_start_reading
         self._current_window_peak = state.current_window_peak
@@ -332,9 +320,29 @@ class CostService:
                 # Settings not known yet; applied in configure_from_snapshot.
                 self._deferred_peaks = list(state.peaks)
 
+        if now is not None:
+            if self._configured:
+                self._discard_if_previous_period(now)
+            else:
+                self._pending_restore_now = now
+
         _LOGGER.info("CostService state restored (peaks=%d)", len(state.peaks))
         self._state_restored = True
         return True
+
+    def _discard_if_previous_period(self, now: datetime) -> None:
+        """Reset restored state that belongs to a previous billing period.
+
+        The last meter reading is kept so the energy delta continues correctly.
+        """
+        start = self._billing_period_start
+        if start is None or is_same_period(now, start, self._billing_duration):
+            return
+        _LOGGER.info(
+            "Discarding restored cost service state from previous billing period (%s)",
+            start.isoformat(),
+        )
+        self._reset_billing_period(now)
 
     # ------------------------------------------------------------------
     # Internal helpers

@@ -637,6 +637,22 @@ class TestCostServiceSaveRestoreState:
         # Meter reading is kept so the next delta is computed correctly.
         assert svc2._prev_reading == pytest.approx(5.0)
 
+    def test_restore_before_configure_from_previous_period_discards_on_configure(self):
+        snap = _snap_with_rates(transmission=1.0, power_price=50.0)
+        state = CostServiceState(
+            billing_period_start_iso=datetime(2025, 1, 1, tzinfo=UTC).isoformat(),
+            peaks=[PeakRecord(dt=_dt(2025, 1, 5), value=8.0)],
+            accumulated_transmission_cost=42.0,
+            total_energy_kwh=42.0,
+        )
+        svc = CostService()
+        svc.restore_state(state.to_dict(), now=_dt(2025, 2, 2, 8))
+        svc.configure_from_snapshot(snap)
+        bd = svc.get_breakdown(_dt(2025, 2, 2, 8), snap)
+        assert bd.stored_peaks == []
+        assert bd.transmission_cost == 0.0
+        assert bd.total_energy_kwh == 0.0
+
     def test_restore_after_rollover_by_energy_update_discards_deferred_peaks(self):
         snap = _make_snapshot(power_price=50.0)
         state = CostServiceState(
