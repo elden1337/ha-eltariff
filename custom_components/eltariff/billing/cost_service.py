@@ -11,7 +11,7 @@ tariff snapshot from the coordinator.  It maintains:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from .iso_duration import (
@@ -39,6 +39,18 @@ _DEFAULT_IDENTIFICATION_PERIOD = parse_iso_duration("P1D")
 _GLOBAL_KEY = "__global__"
 
 
+def _parse_dt(value: str | None) -> datetime | None:
+    """Parse an ISO timestamp, returning a timezone-aware datetime (UTC if naive)."""
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        _LOGGER.warning("Ignoring malformed timestamp in saved state")
+        return None
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=UTC)
+
+
 class CostService:
     """Stateful cost accumulator for a single tariff entry.
 
@@ -61,6 +73,8 @@ class CostService:
         # Billing period state
         self._billing_period_start: datetime | None = None
         self._deferred_peaks: list[PeakRecord] | None = None
+        # Restore time, kept until configured so stale state can be discarded.
+        self._pending_restore_now: datetime | None = None
 
         # Energy window state
         self._current_window_start: datetime | None = None
@@ -134,17 +148,6 @@ class CostService:
                 new_trackers[cid] = new_tracker
             self._peak_trackers = new_trackers
 
-            if not self._peak_trackers and self._deferred_peaks:
-                # Restore deferred peaks grouped by component_id.
-                by_comp: dict[str, list[PeakRecord]] = {}
-                for record in self._deferred_peaks:
-                    key = record.component_id or _GLOBAL_KEY
-                    by_comp.setdefault(key, []).append(record)
-                for cid, records in by_comp.items():
-                    tracker = self._get_or_create_tracker(cid)
-                    tracker.restore(records)
-                self._deferred_peaks = None
-
             _LOGGER.debug(
                 "CostService configured: billing=%s peak_dur=%s id_period=%s n=%d fn=%s",
                 billing_str,
@@ -155,6 +158,17 @@ class CostService:
             )
 
         self._configured = True
+
+        # State restored before configuration: discard it if it belongs to a
+        # previous billing period (now that the billing duration is known).
+        if self._pending_restore_now is not None:
+            self._discard_if_previous_period(self._pending_restore_now)
+            self._pending_restore_now = None
+
+        # Apply peaks that were restored before the service was configured.
+        if self._deferred_peaks:
+            self._apply_peaks(self._deferred_peaks)
+            self._deferred_peaks = None
 
     # ------------------------------------------------------------------
     # Public interface
@@ -245,6 +259,9 @@ class CostService:
         for cid, tracker in self._peak_trackers.items():
             for record in tracker.serialise():
                 all_peaks.append(PeakRecord(dt=record.dt, value=record.value, component_id=cid))
+        # Peaks restored but not yet applied (service not configured) must not be lost.
+        if self._deferred_peaks:
+            all_peaks.extend(self._deferred_peaks)
 
         return CostServiceState(
             billing_period_start_iso=(
@@ -263,21 +280,34 @@ class CostService:
             total_energy_kwh=self._total_energy_kwh,
         ).to_dict()
 
-    def restore_state(self, data: dict) -> None:
+    def restore_state(self, data: dict, now: datetime | None = None) -> bool:
         """Restore from a previously saved dict.
 
-        Only the first call takes effect; subsequent calls are ignored so that
-        multiple sensors sharing the same CostService don't overwrite each other.
+        Only the first successful call takes effect; subsequent calls are
+        ignored so that multiple sources (persistent store, sensor attributes)
+        don't overwrite each other.
+
+        If *now* is given and the service is already configured, state that
+        belongs to a previous billing period is discarded.
+
+        Returns True if state was restored, False otherwise (already restored
+        or malformed data).
         """
         if self._state_restored:
-            return
+            return False
 
-        state = CostServiceState.from_dict(data)
+        if not isinstance(data, dict):
+            _LOGGER.warning("Ignoring malformed cost service state: %r", type(data))
+            return False
 
-        if state.billing_period_start_iso:
-            self._billing_period_start = datetime.fromisoformat(state.billing_period_start_iso)
-        if state.current_window_start_iso:
-            self._current_window_start = datetime.fromisoformat(state.current_window_start_iso)
+        try:
+            state = CostServiceState.from_dict(data)
+        except (KeyError, TypeError, ValueError):
+            _LOGGER.warning("Ignoring malformed cost service state", exc_info=True)
+            return False
+
+        self._billing_period_start = _parse_dt(state.billing_period_start_iso)
+        self._current_window_start = _parse_dt(state.current_window_start_iso)
         self._current_window_start_reading = state.current_window_start_reading
         self._current_window_peak = state.current_window_peak
         self._prev_reading = state.prev_reading
@@ -287,21 +317,35 @@ class CostService:
         self._total_energy_kwh = state.total_energy_kwh
 
         if state.peaks:
-            if self._peak_trackers:
-                # Trackers already exist — re-group and restore into them.
-                by_comp: dict[str, list[PeakRecord]] = {}
-                for record in state.peaks:
-                    key = record.component_id or _GLOBAL_KEY
-                    by_comp.setdefault(key, []).append(record)
-                for cid, records in by_comp.items():
-                    tracker = self._get_or_create_tracker(cid)
-                    tracker.restore(records)
+            if self._configured:
+                self._apply_peaks(state.peaks)
             else:
-                # PeakTrackers not yet created; store for deferred restore.
+                # Settings not known yet; applied in configure_from_snapshot.
                 self._deferred_peaks = list(state.peaks)
+
+        if now is not None:
+            if self._configured:
+                self._discard_if_previous_period(now)
+            else:
+                self._pending_restore_now = now
 
         _LOGGER.info("CostService state restored (peaks=%d)", len(state.peaks))
         self._state_restored = True
+        return True
+
+    def _discard_if_previous_period(self, now: datetime) -> None:
+        """Reset restored state that belongs to a previous billing period.
+
+        The last meter reading is kept so the energy delta continues correctly.
+        """
+        start = self._billing_period_start
+        if start is None or is_same_period(now, start, self._billing_duration):
+            return
+        _LOGGER.info(
+            "Discarding restored cost service state from previous billing period (%s)",
+            start.isoformat(),
+        )
+        self._reset_billing_period(now)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -328,6 +372,15 @@ class CostService:
             )
         return self._peak_trackers[key]
 
+    def _apply_peaks(self, peaks: list[PeakRecord]) -> None:
+        """Load peaks into the per-component trackers, grouped by component_id."""
+        by_comp: dict[str, list[PeakRecord]] = {}
+        for record in peaks:
+            key = record.component_id or _GLOBAL_KEY
+            by_comp.setdefault(key, []).append(record)
+        for cid, records in by_comp.items():
+            self._get_or_create_tracker(cid).restore(records)
+
     def _reset_billing_period(self, now: datetime) -> None:
         """Reset all accumulators for a new billing period."""
         self._billing_period_start = period_start(now, self._billing_duration)
@@ -339,6 +392,7 @@ class CostService:
         self._current_window_start_reading = None
         self._current_window_peak = 0.0
         self._current_window_component_id = None
+        self._deferred_peaks = None
         for tracker in self._peak_trackers.values():
             tracker.reset()
 
@@ -348,6 +402,11 @@ class CostService:
         """Track the peak_duration window and record peaks per component."""
         comp_key = self._component_key(snapshot)
         window_start_now = period_start(now, self._peak_duration)
+
+        # The owning component isn't persisted; after a restore, attribute the
+        # in-progress window to the currently active component.
+        if self._current_window_start is not None and self._current_window_component_id is None:
+            self._current_window_component_id = comp_key
 
         # Detect window transition
         if (

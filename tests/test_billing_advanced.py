@@ -574,6 +574,165 @@ class TestCostServiceSaveRestoreState:
         assert len(svc._peak_tracker.peaks) == 1
         assert svc._peak_tracker.peaks[0].value == 8.0
 
+    def test_peaks_restored_when_configured_before_restore(self):
+        """Mirrors HA startup: configure from snapshot first, then restore state.
+
+        Regression: peaks were parked as "deferred" and never applied, so the
+        stored peaks reset to zero after every restart.
+        """
+        snap = _make_snapshot(power_price=50.0)
+        snap.active_power_component.peak_identification_settings = MagicMock(
+            peak_identification_period="P1D",
+            peak_duration="PT1H",
+            number_of_peaks_for_average=3,
+            peak_function="average",
+        )
+        svc = CostService()
+        svc.configure_from_snapshot(snap)
+        svc.on_energy_update(0.0, _dt(2025, 1, 5, 8), snap)
+        svc.on_energy_update(4.0, _dt(2025, 1, 5, 8), snap)
+        svc.on_energy_update(4.0, _dt(2025, 1, 6, 8), snap)
+        svc.on_energy_update(10.0, _dt(2025, 1, 6, 8), snap)
+        before = svc.get_breakdown(_dt(2025, 1, 6, 9), snap)
+        assert len(before.stored_peaks) == 2
+        saved = svc.save_state()
+
+        # "Restart"
+        svc2 = CostService()
+        svc2.configure_from_snapshot(snap)
+        assert svc2.restore_state(saved, now=_dt(2025, 1, 6, 10)) is True
+        after = svc2.get_breakdown(_dt(2025, 1, 6, 10), snap)
+
+        assert [(p.dt, p.value) for p in after.stored_peaks] == [
+            (p.dt, p.value) for p in before.stored_peaks
+        ]
+        assert after.observed_peak_kwh == pytest.approx(before.observed_peak_kwh)
+        assert after.charged_peak_kwh == pytest.approx(before.charged_peak_kwh)
+        assert after.peak_cost == pytest.approx(before.peak_cost)
+
+        # New readings keep building on the restored peaks.
+        svc2.on_energy_update(10.0, _dt(2025, 1, 7, 8), snap)
+        svc2.on_energy_update(13.0, _dt(2025, 1, 7, 8), snap)
+        bd = svc2.get_breakdown(_dt(2025, 1, 7, 9), snap)
+        assert sorted(p.value for p in bd.stored_peaks) == [3.0, 4.0, 6.0]
+
+    def test_restore_from_previous_billing_period_discards_peaks(self):
+        snap = _snap_with_rates(transmission=1.0, power_price=50.0)
+        svc = CostService()
+        svc.configure_from_snapshot(snap)
+        svc.on_energy_update(0.0, _dt(2025, 1, 30, 8), snap)
+        svc.on_energy_update(5.0, _dt(2025, 1, 30, 8), snap)
+        saved = svc.save_state()
+        assert saved["peaks"]
+
+        svc2 = CostService()
+        svc2.configure_from_snapshot(snap)
+        svc2.restore_state(saved, now=_dt(2025, 2, 2, 8))
+        bd = svc2.get_breakdown(_dt(2025, 2, 2, 8), snap)
+        assert bd.stored_peaks == []
+        assert bd.charged_peak_kwh == 0.0
+        assert bd.transmission_cost == 0.0
+        assert bd.total_energy_kwh == 0.0
+        assert bd.billing_period_start == datetime(2025, 2, 1, tzinfo=UTC)
+        # Meter reading is kept so the next delta is computed correctly.
+        assert svc2._prev_reading == pytest.approx(5.0)
+
+    def test_restore_before_configure_from_previous_period_discards_on_configure(self):
+        snap = _snap_with_rates(transmission=1.0, power_price=50.0)
+        state = CostServiceState(
+            billing_period_start_iso=datetime(2025, 1, 1, tzinfo=UTC).isoformat(),
+            peaks=[PeakRecord(dt=_dt(2025, 1, 5), value=8.0)],
+            accumulated_transmission_cost=42.0,
+            total_energy_kwh=42.0,
+        )
+        svc = CostService()
+        svc.restore_state(state.to_dict(), now=_dt(2025, 2, 2, 8))
+        svc.configure_from_snapshot(snap)
+        bd = svc.get_breakdown(_dt(2025, 2, 2, 8), snap)
+        assert bd.stored_peaks == []
+        assert bd.transmission_cost == 0.0
+        assert bd.total_energy_kwh == 0.0
+
+    def test_restore_after_rollover_by_energy_update_discards_deferred_peaks(self):
+        snap = _make_snapshot(power_price=50.0)
+        state = CostServiceState(
+            billing_period_start_iso=datetime(2025, 1, 1, tzinfo=UTC).isoformat(),
+            peaks=[PeakRecord(dt=_dt(2025, 1, 5), value=8.0)],
+            prev_reading=100.0,
+        )
+        svc = CostService()
+        svc.restore_state(state.to_dict())
+        svc.on_energy_update(100.0, _dt(2025, 2, 3, 8), snap)
+        bd = svc.get_breakdown(_dt(2025, 2, 3, 8), snap)
+        assert bd.stored_peaks == []
+
+    def test_save_before_configure_keeps_deferred_peaks(self):
+        state = CostServiceState(
+            billing_period_start_iso=datetime(2025, 1, 1, tzinfo=UTC).isoformat(),
+            peaks=[PeakRecord(dt=_dt(2025, 1, 5), value=8.0, component_id="pc1")],
+        )
+        svc = CostService()
+        svc.restore_state(state.to_dict())
+        saved = svc.save_state()
+        assert [(p["value"], p["component_id"]) for p in saved["peaks"]] == [(8.0, "pc1")]
+
+    def test_restore_malformed_data_does_not_crash(self):
+        svc = CostService()
+        svc.configure_from_snapshot(_make_snapshot())
+        assert svc.restore_state("garbage") is False  # type: ignore[arg-type]
+        assert svc.restore_state({"window_peak": "not-a-number"}) is False
+        # A later valid restore is still accepted.
+        assert svc.restore_state({"peaks": []}) is True
+
+    def test_restore_skips_malformed_peaks_and_bad_timestamps(self):
+        svc = CostService()
+        snap = _make_snapshot(power_price=50.0)
+        svc.configure_from_snapshot(snap)
+        data = {
+            "billing_period_start": "not-a-date",
+            "window_start": None,
+            "peaks": [
+                {"dt": "2025-01-05T12:00:00+00:00", "value": 3.0},
+                {"dt": "bad", "value": 1.0},
+                {"value": 2.0},
+                "nope",
+            ],
+        }
+        assert svc.restore_state(data, now=_dt(2025, 1, 6)) is True
+        assert [p.value for p in svc._peak_tracker.peaks] == [3.0]
+        assert svc._billing_period_start is None
+
+    def test_restore_naive_timestamps_become_utc(self):
+        svc = CostService()
+        snap = _make_snapshot(power_price=50.0)
+        svc.configure_from_snapshot(snap)
+        data = {
+            "billing_period_start": "2025-01-01T00:00:00",
+            "window_start": "2025-01-05T12:00:00",
+            "peaks": [{"dt": "2025-01-05T12:00:00", "value": 3.0}],
+        }
+        svc.restore_state(data, now=_dt(2025, 1, 6))
+        assert svc._billing_period_start == datetime(2025, 1, 1, tzinfo=UTC)
+        assert svc._current_window_start.tzinfo is not None
+        assert svc._peak_tracker.peaks[0].dt == _dt(2025, 1, 5)
+        # Must not raise when compared with aware datetimes.
+        svc.on_energy_update(1.0, _dt(2025, 1, 6, 8), snap)
+
+    def test_in_progress_window_recorded_after_restore(self):
+        """The window component id isn't persisted; the current window must still count."""
+        snap = _make_snapshot(power_price=50.0)
+        svc = CostService()
+        svc.configure_from_snapshot(snap)
+        svc.on_energy_update(0.0, _dt(2025, 1, 5, 8), snap)
+        saved = svc.save_state()
+
+        svc2 = CostService()
+        svc2.configure_from_snapshot(snap)
+        svc2.restore_state(saved, now=_dt(2025, 1, 5, 8))
+        svc2.on_energy_update(2.5, _dt(2025, 1, 5, 8), snap)
+        bd = svc2.get_breakdown(_dt(2025, 1, 5, 8), snap)
+        assert [p.value for p in bd.stored_peaks] == [2.5]
+
     def test_save_state_billing_period_start_is_correct(self):
         svc = CostService()
         snap = _make_snapshot()

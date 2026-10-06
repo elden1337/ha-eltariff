@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
@@ -17,8 +17,11 @@ class PeakRecord:
 
     @classmethod
     def from_dict(cls, d: dict) -> PeakRecord:
+        dt = datetime.fromisoformat(d["dt"])
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
         return cls(
-            dt=datetime.fromisoformat(d["dt"]),
+            dt=dt,
             value=float(d["value"]),
             component_id=d.get("component_id", ""),
         )

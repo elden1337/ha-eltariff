@@ -64,7 +64,7 @@ Stateful, but also HA-free and fully unit-testable. Three modules:
 
 ### Async and HA integration
 
-The coordinator and sensors are async HA components. `CostService` and `PeakTracker` are synchronous — they are called from within the async sensor property accessors, which is fine since they do no I/O. `RunningCostSensor` uses `RestoreEntity` to persist `CostService` state across HA restarts via `extra_state_attributes`.
+The coordinator and sensors are async HA components. `CostService` and `PeakTracker` are synchronous — they are called from within the async sensor property accessors, which is fine since they do no I/O. `CostService` state is persisted via `homeassistant.helpers.storage.Store` (loaded in `async_setup_entry` before the sensor platforms are set up, debounced saves on energy updates, flushed on unload/shutdown). The cost sensors' `RestoreEntity` `cost_service_state` attribute remains as a legacy fallback when the Store is empty.
 
 ### Config flow
 

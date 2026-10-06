@@ -1,8 +1,26 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 from .peak_record import PeakRecord
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _parse_peaks(raw: object) -> list[PeakRecord]:
+    """Parse stored peaks, skipping any malformed entries."""
+    if not isinstance(raw, list):
+        return []
+    peaks: list[PeakRecord] = []
+    for p in raw:
+        if not isinstance(p, dict):
+            continue
+        try:
+            peaks.append(PeakRecord.from_dict(p))
+        except (KeyError, TypeError, ValueError):
+            _LOGGER.warning("Skipping malformed stored peak: %r", p)
+    return peaks
 
 
 @dataclass
@@ -41,7 +59,7 @@ class CostServiceState:
     def from_dict(cls, d: dict) -> CostServiceState:
         return cls(
             billing_period_start_iso=d.get("billing_period_start"),
-            peaks=[PeakRecord.from_dict(p) for p in d.get("peaks", []) if isinstance(p, dict)],
+            peaks=_parse_peaks(d.get("peaks")),
             current_window_start_iso=d.get("window_start"),
             current_window_start_reading=d.get("window_start_reading"),
             current_window_peak=float(d.get("window_peak", 0.0)),

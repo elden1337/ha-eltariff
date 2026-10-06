@@ -55,17 +55,18 @@ class CostSensorBase(CoordinatorEntity[EltariffCoordinator], RestoreEntity, Sens
             except (ValueError, TypeError):
                 pass
 
-        # Attempt to restore the shared CostService state.  Only the first
-        # sensor to run this will actually perform the restore; the CostService
-        # itself guards against double-restore via _state_restored.
+        # Legacy fallback: restore the shared CostService state from the sensor
+        # attributes.  The persistent Store (loaded in async_setup_entry) takes
+        # precedence; the CostService guards against double-restore via
+        # _state_restored, so this is a no-op when the Store had data.
         if last_state.attributes:
             saved = last_state.attributes.get("cost_service_state")
             if saved and isinstance(saved, dict):
                 try:
-                    self._cost_service.restore_state(saved)
-                    _LOGGER.info(
-                        "Restored cost service state from %s", self._attr_unique_id
-                    )
+                    if self._cost_service.restore_state(saved, now=datetime.now(tz=UTC)):
+                        _LOGGER.info(
+                            "Restored cost service state from %s", self._attr_unique_id
+                        )
                 except Exception:
                     _LOGGER.exception(
                         "Failed to restore cost service state from %s",
