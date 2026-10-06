@@ -89,7 +89,7 @@ Peak tracking uses the tariff's `peakIdentificationSettings` from the API:
 
 > **Note:** If your tariff has no power (effect) component — common with price-curve-only tariffs — the integration still tracks the **observed peak** for reference (useful when the contract has an absolute power ceiling), but will not create the `charged_peak` or `peak_cost` sensors since there is no peak billing.
 
-Peaks and accumulated costs **persist across HA restarts** via Home Assistant's restore-state mechanism — you won't lose your monthly data on a reboot.
+Peaks and accumulated costs **persist across HA restarts** via Home Assistant's storage (`.storage/eltariff.<entry_id>.cost_service`) — you won't lose your monthly data on a reboot. State saved in a previous billing period is discarded on startup.
 
 ## Price curves
 

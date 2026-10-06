@@ -16,6 +16,14 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["sensor", "binary_sensor"]
 
+# Persistent storage for CostService state (peaks, accumulators).
+STORAGE_VERSION = 1
+STORAGE_SAVE_DELAY = 30  # seconds; debounces writes on frequent energy updates
+
+
+def _storage_key(entry_id: str) -> str:
+    return f"{DOMAIN}.{entry_id}.cost_service"
+
 
 def _energy_entity_id(entry: ConfigEntry) -> str | None:
     return entry.options.get(CONF_ENERGY_SENSOR) or entry.data.get(CONF_ENERGY_SENSOR) or None
@@ -32,6 +40,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up energy tracker and cost service if an energy sensor is configured.
     energy_id = _energy_entity_id(entry)
     if energy_id:
+        from homeassistant.helpers.storage import Store
+
         from .billing.cost_service import CostService
         from .energy_tracker import EnergyTracker
 
@@ -44,6 +54,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if coordinator.data and coordinator.data.snapshot:
             cost_service.configure_from_snapshot(coordinator.data.snapshot)
 
+        # Restore persisted state (peaks, accumulators) BEFORE the sensor
+        # platforms are set up, so the first state write already contains the
+        # restored values.  If nothing is stored yet (e.g. upgrade from an older
+        # version), the sensors fall back to their RestoreEntity attributes.
+        store: Store = Store(hass, STORAGE_VERSION, _storage_key(entry.entry_id))
+        try:
+            stored = await store.async_load()
+        except Exception:
+            _LOGGER.exception("Failed to load stored cost service state")
+            stored = None
+        if stored:
+            cost_service.restore_state(stored, now=datetime.now(tz=UTC))
+
         tracker = EnergyTracker(hass, energy_id)
 
         def _on_energy(value: float) -> None:
@@ -53,11 +76,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     now=datetime.now(tz=UTC),
                     snapshot=coordinator.data.snapshot,
                 )
+                # Debounced; pending writes are flushed by HA on shutdown.
+                store.async_delay_save(cost_service.save_state, STORAGE_SAVE_DELAY)
 
         tracker.on_update(_on_energy)
 
         hass.data[DOMAIN][f"{entry.entry_id}_tracker"] = tracker
         hass.data[DOMAIN][f"{entry.entry_id}_cost_service"] = cost_service
+        hass.data[DOMAIN][f"{entry.entry_id}_store"] = store
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -150,5 +176,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id, None)
         hass.data[DOMAIN].pop(f"{entry.entry_id}_tracker", None)
-        hass.data[DOMAIN].pop(f"{entry.entry_id}_cost_service", None)
+        cost_service = hass.data[DOMAIN].pop(f"{entry.entry_id}_cost_service", None)
+        store = hass.data[DOMAIN].pop(f"{entry.entry_id}_store", None)
+        # Flush state immediately so a reload (e.g. options change) keeps peaks.
+        if cost_service is not None and store is not None:
+            try:
+                await store.async_save(cost_service.save_state())
+            except Exception:
+                _LOGGER.exception("Failed to save cost service state on unload")
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Delete persisted cost service state when the config entry is removed."""
+    from homeassistant.helpers.storage import Store
+
+    await Store(hass, STORAGE_VERSION, _storage_key(entry.entry_id)).async_remove()
