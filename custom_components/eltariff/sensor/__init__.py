@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..const import CONF_VAT_MODE, DOMAIN, VAT_MODE_INC
 from ..coordinator import EltariffCoordinator
+from ..tariff_shape import has_banded_power, has_energy_reference, has_fixed_price
 from .active_power_band import ActivePowerBandSensor
 from .active_power_price import ActivePowerPriceSensor
 from .energy_price_total import EnergyPriceTotalSensor
@@ -26,16 +27,25 @@ async def async_setup_entry(
     coordinator: EltariffCoordinator = hass.data[DOMAIN][entry.entry_id]
     vat_mode = entry.options.get(CONF_VAT_MODE) or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
 
+    tariff = coordinator.data.snapshot.tariff if coordinator.data else None
+    banded = tariff is not None and has_banded_power(tariff)
+
     entities = [
-        ActivePowerPriceSensor(coordinator, entry, vat_mode),
-        ActivePowerBandSensor(coordinator, entry),
         EnergyPriceTotalSensor(coordinator, entry, vat_mode),
-        EnergyTransferSensor(coordinator, entry, vat_mode),
-        EnergyTaxSensor(coordinator, entry, vat_mode),
-        FixedPriceAnnualSensor(coordinator, entry, vat_mode),
-        PeaksUsedForAverageSensor(coordinator, entry),
         NextTransitionSensor(coordinator, entry),
     ]
+    if banded:
+        entities.extend([
+            ActivePowerPriceSensor(coordinator, entry, vat_mode),
+            ActivePowerBandSensor(coordinator, entry),
+            PeaksUsedForAverageSensor(coordinator, entry),
+        ])
+    if tariff is not None and has_energy_reference(tariff, "main"):
+        entities.append(EnergyTransferSensor(coordinator, entry, vat_mode))
+    if tariff is not None and has_energy_reference(tariff, "tax"):
+        entities.append(EnergyTaxSensor(coordinator, entry, vat_mode))
+    if tariff is not None and has_fixed_price(tariff):
+        entities.append(FixedPriceAnnualSensor(coordinator, entry, vat_mode))
 
     # Add price curve sensors for components that have a url (dynamic pricing).
     if coordinator.data and coordinator.data.price_curves:
@@ -63,12 +73,8 @@ async def async_setup_entry(
         ])
 
         # Only spawn peak-cost and charged-peak sensors when the tariff has
-        # an active power component (i.e. a traditional peak billing model).
-        has_power = (
-            coordinator.data
-            and coordinator.data.snapshot
-            and coordinator.data.snapshot.active_power_component is not None
-        )
+        # banded/peak power components (not a dynamic hourly power price).
+        has_power = banded
         if has_power:
             from .charged_peak import ChargedPeakSensor
             from .peak_cost import PeakCostSensor
@@ -87,6 +93,8 @@ async def async_setup_entry(
                 PriceCurveCostSensor(coordinator, entry, cost_service, vat_mode),
             )
 
+    if tariff is not None:
+        _remove_stale_entities(hass, entry, "sensor", entities)
     async_add_entities(entities)
 
 
@@ -102,3 +110,16 @@ def _find_component_name(coordinator: EltariffCoordinator, component_id: str) ->
             if comp.id == component_id:
                 return comp.name
     return None
+
+
+def _remove_stale_entities(
+    hass: HomeAssistant, entry: ConfigEntry, domain: str, entities: list
+) -> None:
+    """Drop registry entries of this platform that the current tariff no longer provides."""
+    from homeassistant.helpers import entity_registry as er
+
+    keep = {e.unique_id for e in entities}
+    registry = er.async_get(hass)
+    for reg in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if reg.domain == domain and reg.platform == DOMAIN and reg.unique_id not in keep:
+            registry.async_remove(reg.entity_id)
