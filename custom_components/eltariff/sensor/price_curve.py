@@ -59,8 +59,7 @@ class PriceCurveSensor(EltariffSensorBase):
     @property
     def native_unit_of_measurement(self) -> str:
         resp = self._prices_response
-        currency = resp.currency if resp else "SEK"
-        return f"{currency}/kWh"
+        return resp.price_unit if resp else "SEK/kWh"
 
     def _entries_as_dicts(self, entries, preview_ids: frozenset[int] | None = None) -> list[dict]:
         out = []
