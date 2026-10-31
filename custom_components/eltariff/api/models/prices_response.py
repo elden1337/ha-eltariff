@@ -76,6 +76,11 @@ class PricesResponse:
         )
 
     @property
+    def price_unit(self) -> str:
+        """Unit of the prices, e.g. ``SEK/kW``; ``kWh`` when the response has no unit."""
+        return f"{self.currency}/{self.unit or 'kWh'}"
+
+    @property
     def all_entries(self) -> list[PriceListEntry]:
         """All entries (actual + forecast), sorted by start time."""
         combined = list(self.actual) + list(self.forecast)

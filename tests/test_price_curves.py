@@ -803,3 +803,13 @@ class TestSpecMinimalResponse:
         resp = PricesResponse.from_dict({"currency": "SEK", "unit": "kW", "actual": []})
         assert resp.all_entries == []
         assert resp.resolution == "PT1H"
+
+
+class TestPriceUnit:
+    def test_uses_response_unit(self) -> None:
+        resp = PricesResponse.from_dict({"currency": "SEK", "unit": "kW", "actual": []})
+        assert resp.price_unit == "SEK/kW"
+
+    def test_defaults_to_kwh(self) -> None:
+        resp = PricesResponse.from_dict({"currency": "SEK", "actual": []})
+        assert resp.price_unit == "SEK/kWh"
