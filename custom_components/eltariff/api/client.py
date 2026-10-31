@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import aiohttp
 
@@ -72,10 +73,17 @@ class TariffApiClient:
         self,
         component_id: str,
         target_date: date | None = None,
+        url: str | None = None,
     ) -> PricesResponse:
-        """Fetch hourly price curve from GET /prices/{componentId}."""
-        path = f"/prices/{component_id}"
+        """Fetch hourly price curve.
+
+        Uses the component's own ``url`` (e.g. ``/prices?product=GN6KWST``) when
+        given, otherwise falls back to ``/prices/{componentId}``.
+        """
+        path = url or f"/prices/{component_id}"
         if target_date is not None:
-            path += f"?date={target_date.isoformat()}"
+            parts = urlsplit(path)
+            query = parse_qsl(parts.query) + [("date", target_date.isoformat())]
+            path = urlunsplit(parts._replace(query=urlencode(query)))
         data = await self._get(path)
         return PricesResponse.from_dict(data)

@@ -46,7 +46,11 @@ class PricesResponse:
             currency=d["currency"],
             resolution=d.get("resolution", "PT1H"),
             actual=[PriceListEntry.from_dict(e) for e in d.get("actual", [])],
-            forecast=[PriceListEntry.from_dict(e) for e in d.get("forecast", [])],
+            # Some DSOs publish future prices as "preview" instead of "forecast".
+            forecast=[
+                PriceListEntry.from_dict(e)
+                for e in (d.get("forecast") or []) + (d.get("preview") or [])
+            ],
             time_zone=d.get("timeZone"),
         )
 
