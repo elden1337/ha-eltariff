@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -13,6 +14,7 @@ from .api.models import ComponentType
 from .const import DOMAIN
 from .coordinator import EltariffCoordinator
 from .coordinator_data import EltariffCoordinatorData
+from .tariff_shape import has_banded_power
 
 
 async def async_setup_entry(
@@ -21,7 +23,17 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: EltariffCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([HighTariffActiveSensor(coordinator, entry)])
+    if not coordinator.data:
+        return
+    if has_banded_power(coordinator.data.snapshot.tariff):
+        async_add_entities([HighTariffActiveSensor(coordinator, entry)])
+    else:
+        registry = er.async_get(hass)
+        entity_id = registry.async_get_entity_id(
+            "binary_sensor", DOMAIN, f"{entry.entry_id}_high_tariff_active"
+        )
+        if entity_id:
+            registry.async_remove(entity_id)
 
 
 class HighTariffActiveSensor(CoordinatorEntity[EltariffCoordinator], BinarySensorEntity):

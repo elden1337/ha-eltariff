@@ -267,7 +267,14 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             }
             await self._fetch_price_curves(price_curve_ids, now_local, urls)
 
-        snapshot = resolve_active_components(tariff, collection, now)
+        # A tariff that starts in the future has no active components yet; show its
+        # first day's values instead of leaving every sensor unknown.
+        resolve_at = now
+        if now.date() < tariff.valid_period.from_including:
+            tz = zoneinfo.ZoneInfo(info.timezone or "Europe/Stockholm")
+            start = tariff.valid_period.from_including
+            resolve_at = datetime(start.year, start.month, start.day, tzinfo=tz)
+        snapshot = resolve_active_components(tariff, collection, resolve_at)
 
         # Overlay fetched hourly prices onto snapshot components.
         if self._price_curves:
