@@ -767,3 +767,39 @@ class TestPricesUrlAndPreview:
         client._get.assert_awaited_with("/prices?product=GN6KWST&date=2026-12-01")
         await client.get_prices("c1")
         client._get.assert_awaited_with("/prices/c1")
+
+
+class TestSpecMinimalResponse:
+    """Response with only the fields the Eltariff-API spec requires."""
+
+    def test_minimal_entries_and_unit(self) -> None:
+        resp = PricesResponse.from_dict({
+            "currency": "SEK",
+            "unit": "kW",
+            "actual": [
+                {
+                    "start": "2026-12-01T00:00:00+01:00",
+                    "end": "2026-12-01T00:15:00+01:00",
+                    "priceExVat": 40.0,
+                },
+            ],
+            "preview": [
+                {
+                    "created": "2026-11-30T12:00:00+01:00",
+                    "start": "2026-12-01T00:15:00+01:00",
+                    "end": "2026-12-01T00:30:00+01:00",
+                    "priceExVat": 40.0,
+                    "priceIncVat": 50.0,
+                },
+            ],
+        })
+        assert resp.unit == "kW"
+        assert resp.resolution == "PT15M"
+        assert resp.actual[0].created is None
+        assert resp.actual[0].price_inc_vat == 50.0
+        assert resp.forecast[0].price_inc_vat == 50.0
+
+    def test_empty_actual(self) -> None:
+        resp = PricesResponse.from_dict({"currency": "SEK", "unit": "kW", "actual": []})
+        assert resp.all_entries == []
+        assert resp.resolution == "PT1H"

@@ -16,9 +16,12 @@ class PriceCurveSensor(EltariffSensorBase):
     """Sensor for a dynamic price curve component.
 
     native_value: current hour's price from the curve.
-    Attributes expose the full today and tomorrow curves so HA automations
-    can plan ahead.
+    Attributes expose the full today and tomorrow curves, plus a ``forecast`` list
+    with everything after tomorrow (actual or preview) so HA automations can plan ahead.
     """
+
+    # Large lists; keep them out of the recorder (16 KB attribute limit).
+    _unrecorded_attributes = frozenset({"today", "tomorrow", "forecast"})
 
     _attr_icon = "mdi:chart-timeline-variant"
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -59,16 +62,19 @@ class PriceCurveSensor(EltariffSensorBase):
         currency = resp.currency if resp else "SEK"
         return f"{currency}/kWh"
 
-    def _entries_as_dicts(self, entries) -> list[dict]:
-        return [
-            {
+    def _entries_as_dicts(self, entries, preview_ids: frozenset[int] | None = None) -> list[dict]:
+        out = []
+        for e in entries:
+            d = {
                 "start": e.start.isoformat(),
                 "end": e.end.isoformat(),
                 "price_ex_vat": e.price_ex_vat,
                 "price_inc_vat": e.price_inc_vat,
             }
-            for e in entries
-        ]
+            if preview_ids is not None:
+                d["preview"] = id(e) in preview_ids
+            out.append(d)
+        return out
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -79,6 +85,7 @@ class PriceCurveSensor(EltariffSensorBase):
                 "today": [],
                 "tomorrow": [],
                 "tomorrow_available": False,
+                "forecast": [],
             }
 
         snap_time = self._data.snapshot.at
@@ -88,6 +95,10 @@ class PriceCurveSensor(EltariffSensorBase):
         today_entries = resp.entries_for_date(today)
         tomorrow_entries = resp.entries_for_date(tomorrow)
 
+        day_after = tomorrow + timedelta(days=1)
+        forecast_entries = [e for e in resp.all_entries if e.start.date() >= day_after]
+        preview_ids = frozenset(id(e) for e in resp.forecast)
+
         return {
             **self._last_updated_attr(),
             "component_id": self._component_id,
@@ -95,4 +106,6 @@ class PriceCurveSensor(EltariffSensorBase):
             "today": self._entries_as_dicts(today_entries),
             "tomorrow": self._entries_as_dicts(tomorrow_entries),
             "tomorrow_available": len(tomorrow_entries) > 0,
+            # Days after tomorrow, if the API provides them; `preview` marks estimates.
+            "forecast": self._entries_as_dicts(forecast_entries, preview_ids),
         }
