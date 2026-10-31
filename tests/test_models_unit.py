@@ -793,3 +793,18 @@ class TestPriceGroup:
         assert pg.id is None
         assert pg.name is None
         assert pg.cost_function is None
+
+
+class TestPriceComponentNullPrice:
+    @pytest.mark.parametrize("price", [None, "missing"])
+    def test_from_dict_null_or_missing_price_defaults_to_zero(self, price) -> None:
+        d = {
+            "id": "spot1",
+            "type": "energy",
+            "validPeriod": {"fromIncluding": "2025-01-01"},
+        }
+        if price != "missing":
+            d["price"] = None
+        pc = PriceComponent.from_dict(d)
+        assert pc.price.price_inc_vat == 0.0
+        assert pc.price.price_ex_vat == 0.0

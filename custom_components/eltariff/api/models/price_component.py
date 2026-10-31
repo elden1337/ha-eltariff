@@ -38,7 +38,12 @@ class PriceComponent:
             component_type=ComponentType(d["type"]),
             description=d.get("description", ""),
             valid_period=ValidPeriod.from_dict(d["validPeriod"]),
-            price=Price.from_dict(d["price"]),
+            # Spot-priced components may come with a null/missing price
+            price=(
+                Price.from_dict(d["price"])
+                if d.get("price") is not None
+                else Price(price_ex_vat=0.0, price_inc_vat=0.0, currency="SEK")
+            ),
             recurring_periods=[
                 RecurringPeriod.from_dict(r) for r in (d.get("recurringPeriods") or [])
             ],
