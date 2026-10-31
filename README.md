@@ -221,5 +221,5 @@ automation:
 ## Known limitations
 
 - **Catalogue API not implemented.** The RI-SE API spec includes an endpoint for looking up which DSO serves a given metering point (MPID). This integration does not use it — you must select your DSO manually.
-- **Price curves not yet live.** The `/prices` endpoint is implemented and tested, but no DSO currently populates it. The integration is ready to consume it once a DSO starts publishing dynamic price curves.
+- **Price curves.** The `/prices` endpoint is supported, including component `url` values such as `/prices?product=...` and the `preview` key. Some DSOs only start publishing curves at the start of their tariff validity period; until then the price curve sensors are empty.
 - **Running cost requires an energy sensor.** The integration does not integrate power readings itself. You need to provide a cumulative kWh sensor (see [Preparing an energy sensor](#preparing-an-energy-sensor)).

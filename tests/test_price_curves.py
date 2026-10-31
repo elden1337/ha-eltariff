@@ -725,3 +725,45 @@ class TestPriceCurveSensorLogic:
 
         assert resp.has_date(tomorrow) is False
         assert resp.entries_for_date(tomorrow) == []
+
+
+class TestPricesUrlAndPreview:
+    def test_preview_key_is_read_as_forecast(self) -> None:
+        resp = PricesResponse.from_dict(
+            {
+                "currency": "SEK",
+                "unit": "kW",
+                "actual": [],
+                "preview": [
+                    {
+                        "created": "2026-12-01T00:00:00+01:00",
+                        "start": "2026-12-02T00:00:00+01:00",
+                        "end": "2026-12-02T01:00:00+01:00",
+                        "priceExVat": 1.0,
+                        "priceIncVat": 1.25,
+                    }
+                ],
+            }
+        )
+        assert len(resp.forecast) == 1
+
+    def test_empty_response_parses(self) -> None:
+        resp = PricesResponse.from_dict(
+            {"currency": "SEK", "unit": "kW", "actual": [], "preview": []}
+        )
+        assert resp.all_entries == []
+
+    async def test_get_prices_uses_component_url_and_merges_date(self) -> None:
+        from datetime import date as _date
+        from unittest.mock import AsyncMock
+
+        from custom_components.eltariff.api.client import TariffApiClient
+
+        client = TariffApiClient("https://x/api", session=None)  # type: ignore[arg-type]
+        client._get = AsyncMock(  # type: ignore[method-assign]
+            return_value={"currency": "SEK", "actual": [], "preview": []}
+        )
+        await client.get_prices("c1", _date(2026, 12, 1), url="/prices?product=GN6KWST")
+        client._get.assert_awaited_with("/prices?product=GN6KWST&date=2026-12-01")
+        await client.get_prices("c1")
+        client._get.assert_awaited_with("/prices/c1")

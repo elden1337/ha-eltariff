@@ -153,6 +153,7 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         self,
         component_ids: list[str],
         now_local: datetime,
+        urls: dict[str, str] | None = None,
     ) -> None:
         """Fetch price curves for all price-curve components."""
         today = now_local.date()
@@ -173,7 +174,7 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             try:
                 # Fetch without date filter — API defaults to 7 days from today,
                 # which covers both today and tomorrow.
-                resp = await self._client.get_prices(cid)
+                resp = await self._client.get_prices(cid, url=(urls or {}).get(cid))
                 self._price_curves[cid] = resp
                 _LOGGER.debug(
                     "Fetched price curve for component %s: %d actual, %d forecast entries",
@@ -257,7 +258,14 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         if price_curve_ids:
             tz = zoneinfo.ZoneInfo(info.timezone or "Europe/Stockholm")
             now_local = datetime.now(tz=tz)
-            await self._fetch_price_curves(price_curve_ids, now_local)
+            urls = {
+                c.id: c.url
+                for g in (tariff.energy_price, tariff.power_price)
+                if g is not None
+                for c in g.components
+                if c.url
+            }
+            await self._fetch_price_curves(price_curve_ids, now_local, urls)
 
         snapshot = resolve_active_components(tariff, collection, now)
 

@@ -38,7 +38,7 @@ class PriceComponent:
             component_type=ComponentType(d["type"]),
             description=d.get("description", ""),
             valid_period=ValidPeriod.from_dict(d["validPeriod"]),
-            # Spot-priced components may come with a null/missing price
+            # Dynamic components (with a url) have a null price; the price curve overlay fills it in
             price=(
                 Price.from_dict(d["price"])
                 if d.get("price") is not None
