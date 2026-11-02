@@ -726,6 +726,39 @@ class TestPriceCurveSensorLogic:
         assert resp.has_date(tomorrow) is False
         assert resp.entries_for_date(tomorrow) == []
 
+    def test_fetched_at_defaults_to_snapshot_at(self) -> None:
+        data = self._make_data()
+        assert data.fetched_at == data.snapshot.at
+
+    def test_future_tariff_uses_fetched_at_for_current_price(self) -> None:
+        """A future-dated tariff resolves the snapshot at its start date, but the
+        price curve must still be looked up at the real current time."""
+        from custom_components.eltariff.api.models.server import ServerInfo
+
+        now = datetime(2026, 5, 19, 14, 30, tzinfo=UTC)
+        snap = ActiveTariffSnapshot(
+            at=datetime(2026, 6, 1, tzinfo=UTC),
+            tariff=_tariff(energy_comps=[_comp("c1", url="/prices/c1")]),
+            active_energy_components=[_comp("c1", url="/prices/c1")],
+            active_power_components=[],
+            active_fixed_components=[],
+        )
+        curves = {"c1": _make_prices_response(component_id="c1", hours=24)}
+        data = EltariffCoordinatorData(
+            info=ServerInfo(timezone="Europe/Stockholm", tariff_data_last_updated=None),
+            collection=TariffCollection(tariffs=[], calendar_patterns=[]),
+            snapshot=snap,
+            next_transition=None,
+            price_curves=curves,
+            fetched_at=now,
+        )
+        resp = data.price_curves["c1"]
+        assert resp.entry_at(data.snapshot.at) is None
+        entry = resp.entry_at(data.fetched_at)
+        assert entry is not None
+        assert entry.price_inc_vat == pytest.approx(1.75)
+        assert len(resp.entries_for_date(data.fetched_at.date())) == 24
+
 
 class TestPricesUrlAndPreview:
     def test_preview_key_is_read_as_forecast(self) -> None:
