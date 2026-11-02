@@ -292,4 +292,5 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             snapshot=snapshot,
             next_transition=transition,
             price_curves=dict(self._price_curves),
+            fetched_at=now,
         )

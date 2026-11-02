@@ -50,7 +50,7 @@ class PriceCurveSensor(EltariffSensorBase):
         resp = self._prices_response
         if resp is None:
             return None
-        snap_time = self._data.snapshot.at
+        snap_time = self._data.fetched_at
         entry = resp.entry_at(snap_time)
         if entry is None:
             return None
@@ -87,7 +87,7 @@ class PriceCurveSensor(EltariffSensorBase):
                 "forecast": [],
             }
 
-        snap_time = self._data.snapshot.at
+        snap_time = self._data.fetched_at
         today = snap_time.date()
         tomorrow = today + timedelta(days=1)
 
