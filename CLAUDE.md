@@ -6,6 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Always check `LOCAL_WORKSPACE.md` for local development notes, setup quirks, and environment-specific information. This file is gitignored and may contain frequently changing local configuration — always read it before starting work.
 
+## Specialist agents
+
+Two read-only Claude Code agents provide focused reviews. Consult them when a task involves domain behavior or a meaningful design change in their areas; skip them for purely mechanical edits.
+
+| Agent | Consult when |
+|---|---|
+| `ha-specialist` | Home Assistant lifecycle, entities, platforms, `config_flow.py`, `coordinator.py`, storage/restore behavior, diagnostics, or `manifest.json` |
+| `elmarknad-specialist` | DSO tariff interpretation, price components, billing and peak calculations, VAT treatment, schedule resolution, or tariff/time-period boundaries |
+
+Give the relevant specialist the question or diff and the pertinent project context. Both agents are advisors, not implementers. Address a `REVISE` or `REJECT` verdict before finalizing, or explain why you are overriding it. Treat tariff rules as DSO-specific: verify them against the available contract or API data rather than assuming one Swedish billing rule applies universally.
+
 ## Commands
 
 ```bash
