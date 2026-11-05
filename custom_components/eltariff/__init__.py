@@ -47,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         vat_mode = entry.options.get(CONF_VAT_MODE) or entry.data.get(CONF_VAT_MODE, VAT_MODE_INC)
 
-        cost_service = CostService()
+        cost_service = CostService(tz=coordinator.local_tz)
         cost_service.vat_mode = vat_mode
 
         # Configure from the initial snapshot
@@ -70,12 +70,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         tracker = EnergyTracker(hass, energy_id)
 
         def _on_energy(value: float) -> None:
-            if coordinator.data and coordinator.data.snapshot:
-                cost_service.on_energy_update(
-                    reading_kwh=value,
-                    now=datetime.now(tz=UTC),
-                    snapshot=coordinator.data.snapshot,
-                )
+            now = datetime.now(tz=UTC)
+            snapshot = coordinator.snapshot_at(now)
+            if snapshot:
+                cost_service.on_energy_update(reading_kwh=value, now=now, snapshot=snapshot)
                 # Debounced; pending writes are flushed by HA on shutdown.
                 store.async_delay_save(cost_service.save_state, STORAGE_SAVE_DELAY)
 
@@ -110,21 +108,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.services.has_service(DOMAIN, "get_schedule"):
 
         async def handle_get_schedule(call) -> dict:
-            import zoneinfo
-
             from homeassistant.core import SupportsResponse  # noqa: F401
 
             from .api.schedule import build_day_schedule
 
             raw_date = call.data.get("date")
             days = int(call.data.get("days", 1))
-            start_day = date.fromisoformat(raw_date) if raw_date else date.today()
 
             coord = hass.data[DOMAIN].get(entry.entry_id)
             if coord is None or coord.data is None:
                 return {"schedule": []}
 
-            tz = zoneinfo.ZoneInfo(coord.data.info.timezone or "Europe/Stockholm")
+            tz = coord.local_tz
+            start_day = date.fromisoformat(raw_date) if raw_date else datetime.now(tz=tz).date()
             tariff = coord.data.collection.get_tariff(coord.tariff_id)
             if tariff is None:
                 return {"schedule": []}

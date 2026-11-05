@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from calendar import monthrange
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,8 +87,17 @@ def period_end(dt: datetime, duration: ParsedDuration) -> datetime:
 
 
 def is_same_period(dt1: datetime, dt2: datetime, duration: ParsedDuration) -> bool:
-    """Check whether *dt1* and *dt2* fall into the same period."""
-    return period_start(dt1, duration) == period_start(dt2, duration)
+    """Check whether *dt1* and *dt2* fall into the same period.
+
+    Periods are aligned in *dt1*'s timezone, so *dt2* may use another offset (e.g.
+    state saved in UTC). Starts are compared as instants: datetimes sharing a tzinfo
+    compare by wall clock, which would merge the two 02:00 hours when DST ends.
+    """
+    if dt1.tzinfo is None or dt2.tzinfo is None:
+        return period_start(dt1, duration) == period_start(dt2, duration)
+    start1 = period_start(dt1, duration)
+    start2 = period_start(dt2.astimezone(dt1.tzinfo), duration)
+    return start1.astimezone(UTC) == start2.astimezone(UTC)
 
 
 def _add_duration(dt: datetime, duration: ParsedDuration) -> datetime:

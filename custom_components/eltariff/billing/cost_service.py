@@ -6,12 +6,17 @@ tariff snapshot from the coordinator.  It maintains:
 * Peak tracking via :class:`PeakTracker` (one per power component).
 * Incremental transmission and tax cost accumulation.
 * A billing-period clock that resets everything on period boundaries.
+
+Billing periods, identification periods and peak windows follow the tariff's
+local calendar, so every timestamp is converted to the service's timezone on the
+way in.  Callers may pass any timezone-aware datetime.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, tzinfo
 from typing import TYPE_CHECKING
 
 from .iso_duration import (
@@ -59,7 +64,9 @@ class CostService:
     current running cost.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, tz: tzinfo | None = None) -> None:
+        # Tariff timezone; None keeps timestamps in the timezone they arrive in.
+        self._tz = tz
         self._vat_mode: str = "inc_vat"
         self._billing_duration: ParsedDuration = _DEFAULT_BILLING_PERIOD
         self._peak_duration: ParsedDuration = _DEFAULT_PEAK_DURATION
@@ -181,6 +188,7 @@ class CostService:
         snapshot: ActiveTariffSnapshot,
     ) -> None:
         """Process a new energy sensor reading."""
+        now = self._to_local(now)
         if not self._configured:
             self.configure_from_snapshot(snapshot)
 
@@ -220,6 +228,7 @@ class CostService:
 
     def get_breakdown(self, now: datetime, snapshot: ActiveTariffSnapshot) -> CostBreakdown:
         """Calculate and return the current cost breakdown."""
+        now = self._to_local(now)
         if not self._configured:
             self.configure_from_snapshot(snapshot)
 
@@ -306,8 +315,8 @@ class CostService:
             _LOGGER.warning("Ignoring malformed cost service state", exc_info=True)
             return False
 
-        self._billing_period_start = _parse_dt(state.billing_period_start_iso)
-        self._current_window_start = _parse_dt(state.current_window_start_iso)
+        self._billing_period_start = self._to_local(_parse_dt(state.billing_period_start_iso))
+        self._current_window_start = self._to_local(_parse_dt(state.current_window_start_iso))
         self._current_window_start_reading = state.current_window_start_reading
         self._current_window_peak = state.current_window_peak
         self._prev_reading = state.prev_reading
@@ -324,6 +333,7 @@ class CostService:
                 self._deferred_peaks = list(state.peaks)
 
         if now is not None:
+            now = self._to_local(now)
             if self._configured:
                 self._discard_if_previous_period(now)
             else:
@@ -337,9 +347,14 @@ class CostService:
         """Reset restored state that belongs to a previous billing period.
 
         The last meter reading is kept so the energy delta continues correctly.
+        State kept for the current period gets its start re-aligned, since state
+        saved by older versions has it on the UTC calendar.
         """
         start = self._billing_period_start
-        if start is None or is_same_period(now, start, self._billing_duration):
+        if start is None:
+            return
+        if is_same_period(now, start, self._billing_duration):
+            self._billing_period_start = period_start(now, self._billing_duration)
             return
         _LOGGER.info(
             "Discarding restored cost service state from previous billing period (%s)",
@@ -350,6 +365,12 @@ class CostService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _to_local(self, dt: datetime | None) -> datetime | None:
+        """Convert *dt* to the tariff timezone (unchanged when none is set)."""
+        if dt is None or self._tz is None:
+            return dt
+        return dt.astimezone(self._tz)
 
     def _component_key(self, snapshot: ActiveTariffSnapshot) -> str:
         """Return a stable string key for the active power component.
@@ -377,7 +398,7 @@ class CostService:
         by_comp: dict[str, list[PeakRecord]] = {}
         for record in peaks:
             key = record.component_id or _GLOBAL_KEY
-            by_comp.setdefault(key, []).append(record)
+            by_comp.setdefault(key, []).append(replace(record, dt=self._to_local(record.dt)))
         for cid, records in by_comp.items():
             self._get_or_create_tracker(cid).restore(records)
 
@@ -401,7 +422,6 @@ class CostService:
     ) -> None:
         """Track the peak_duration window and record peaks per component."""
         comp_key = self._component_key(snapshot)
-        window_start_now = period_start(now, self._peak_duration)
 
         # The owning component isn't persisted; after a restore, attribute the
         # in-progress window to the currently active component.
@@ -409,9 +429,8 @@ class CostService:
             self._current_window_component_id = comp_key
 
         # Detect window transition
-        if (
-            self._current_window_start is not None
-            and window_start_now != self._current_window_start
+        if self._current_window_start is not None and not is_same_period(
+            now, self._current_window_start, self._peak_duration
         ):
             # Finalise the previous window under whichever component was active then.
             if self._current_window_peak > 0 and self._current_window_component_id is not None:
@@ -420,12 +439,12 @@ class CostService:
 
             # Reset for new window
             self._current_window_peak = 0.0
-            self._current_window_start = window_start_now
+            self._current_window_start = period_start(now, self._peak_duration)
             self._current_window_start_reading = self._prev_reading
             self._current_window_component_id = comp_key
 
         if self._current_window_start is None:
-            self._current_window_start = window_start_now
+            self._current_window_start = period_start(now, self._peak_duration)
             self._current_window_start_reading = reading_kwh
             self._current_window_component_id = comp_key
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from .models import (
     ActivePeriod,
@@ -106,7 +106,11 @@ def resolve_active_components(
     collection: TariffCollection,
     at: datetime,
 ) -> ActiveTariffSnapshot:
-    """Return which components are active at *at*."""
+    """Return which components are active at *at*.
+
+    Tariff schedules are wall-clock times in the tariff's timezone, and are matched
+    against *at* as-is, so *at* must already be in that timezone (not UTC).
+    """
     warnings: list[str] = []
 
     power = _resolve_group(tariff.power_price, at, collection, "powerPrice", warnings)
@@ -124,6 +128,22 @@ def resolve_active_components(
         active_fixed_components=fixed,
         parse_warnings=warnings,
     )
+
+
+def resolve_current_snapshot(
+    tariff: Tariff,
+    collection: TariffCollection,
+    now: datetime,
+) -> ActiveTariffSnapshot:
+    """Return the snapshot to show at *now*, in the tariff's timezone.
+
+    A tariff that starts in the future has no active components yet, so its first
+    day's values are used instead of leaving every sensor unknown.
+    """
+    start = tariff.valid_period.from_including
+    if now.date() < start:
+        now = datetime(start.year, start.month, start.day, tzinfo=now.tzinfo)
+    return resolve_active_components(tariff, collection, now)
 
 
 def _component_ids(snap: ActiveTariffSnapshot) -> frozenset[str]:
@@ -162,6 +182,8 @@ def next_transition_at(
 ) -> datetime | None:
     """Return the next datetime after *after* when the active component set changes.
 
+    *after* must be in the tariff's timezone; see :func:`resolve_active_components`.
+
     Derives candidate transition instants directly from the tariff structure
     (component valid-period date boundaries + active-period time-of-day boundaries),
     then checks only those O(days × few) candidates instead of scanning every minute.
@@ -190,22 +212,27 @@ def build_day_schedule(
     day: date,
     tz_info,
 ) -> list[ScheduleSlot]:
-    """Return hour-by-hour schedule slots for *day*."""
+    """Return hour-by-hour schedule slots for *day*.
+
+    Steps through real hours, so DST days get 23 or 25 slots.
+    """
     slots: list[ScheduleSlot] = []
 
-    t = datetime(day.year, day.month, day.day, 0, 0, tzinfo=tz_info)
-    end = t + timedelta(days=1)
+    next_day = day + timedelta(days=1)
+    t = datetime(day.year, day.month, day.day, tzinfo=tz_info).astimezone(UTC)
+    end = datetime(next_day.year, next_day.month, next_day.day, tzinfo=tz_info).astimezone(UTC)
 
     while t < end:
         slot_end = t + timedelta(hours=1)
-        snap = resolve_active_components(tariff, collection, t)
+        local_start = t.astimezone(tz_info)
+        snap = resolve_active_components(tariff, collection, local_start)
         pc = snap.active_power_component
 
         if pc:
             slots.append(
                 ScheduleSlot(
-                    start=t,
-                    end=slot_end,
+                    start=local_start,
+                    end=slot_end.astimezone(tz_info),
                     band_reference=pc.reference,
                     price_inc_vat=pc.price.price_inc_vat,
                     price_ex_vat=pc.price.price_ex_vat,

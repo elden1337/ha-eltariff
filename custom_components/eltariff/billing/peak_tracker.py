@@ -94,10 +94,7 @@ class PeakTracker:
             return False
 
         # Check for existing peak in the same identification period
-        same_period_idx = next(
-            (i for i, p in enumerate(self._peaks) if is_same_period(dt, p.dt, self._id_period)),
-            None,
-        )
+        same_period_idx = self._same_period_index(dt)
 
         if same_period_idx is not None:
             if value > self._peaks[same_period_idx].value:
@@ -126,14 +123,29 @@ class PeakTracker:
 
         return False
 
+    def _same_period_index(self, dt: datetime) -> int | None:
+        """Index of the stored peak in the same identification period as *dt*."""
+        return next(
+            (i for i, p in enumerate(self._peaks) if is_same_period(dt, p.dt, self._id_period)),
+            None,
+        )
+
     def reset(self) -> None:
         """Clear all peaks (new billing period)."""
         self._peaks.clear()
 
     def restore(self, records: list[PeakRecord]) -> None:
-        """Restore peaks from a list of PeakRecord instances."""
+        """Restore peaks, keeping the highest per identification period.
+
+        State saved on the UTC calendar can hold two peaks for one local day.
+        """
         self._peaks.clear()
-        self._peaks.extend(records)
+        for record in records:
+            idx = self._same_period_index(record.dt)
+            if idx is None:
+                self._peaks.append(record)
+            elif record.value > self._peaks[idx].value:
+                self._peaks[idx] = record
 
     def serialise(self) -> list[PeakRecord]:
         """Return a snapshot of stored peaks."""

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import zoneinfo
-from datetime import date
+from datetime import datetime
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -59,8 +58,8 @@ class EltariffSensorBase(CoordinatorEntity[EltariffCoordinator], SensorEntity):
         }
 
     def _today_schedule_attrs(self) -> dict:
-        tz = zoneinfo.ZoneInfo(self._data.info.timezone or "Europe/Stockholm")
-        today = date.today()
+        tz = self.coordinator.local_tz
+        today = datetime.now(tz=tz).date()
         slots = self.coordinator.get_cached_day_schedule(self.coordinator.tariff_id, today, tz)
         return {
             "today_schedule": [

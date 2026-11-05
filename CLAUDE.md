@@ -73,6 +73,10 @@ Stateful, but also HA-free and fully unit-testable. Three modules:
 - `peak_tracker.py` — `PeakTracker` keeps the top-N peaks across a billing period (one peak per identification period). `observed_peak` = min of stored peaks (the floor the customer has already committed to). `charged_peak` is derived via `peak_function` (average/maximum/minimum).
 - `cost_service.py` — `CostService` orchestrates everything. Fed energy readings via `on_energy_update`; queried via `get_breakdown`. Fixed costs are returned as a lump sum for the billing period (annual/N, where N depends on billing period length) — not prorated mid-period.
 
+### Time zones
+
+Tariff schedules are wall-clock times in the tariff's timezone (`Tariff.time_zone`, falling back to `ServerInfo.timezone`; exposed as `coordinator.local_tz`). `resolve_active_components` and `next_transition_at` match against the datetime as given, so **never pass them UTC**: every band would shift by 1h in winter and 2h in summer. `CostService(tz=...)` converts all incoming timestamps itself, so callers may pass UTC. Compare period boundaries with `is_same_period`, not `==`: datetimes sharing a tzinfo compare by wall clock and ignore `fold`, which merges the repeated hour when DST ends. For "today", use `datetime.now(tz=...)`, not `date.today()`.
+
 ### Async and HA integration
 
 The coordinator and sensors are async HA components. `CostService` and `PeakTracker` are synchronous — they are called from within the async sensor property accessors, which is fine since they do no I/O. `CostService` state is persisted via `homeassistant.helpers.storage.Store` (loaded in `async_setup_entry` before the sensor platforms are set up, debounced saves on energy updates, flushed on unload/shutdown). The cost sensors' `RestoreEntity` `cost_service_state` attribute remains as a legacy fallback when the Store is empty.
@@ -91,6 +95,7 @@ Tests live in `tests/`. The split is intentional:
 - `test_models_unit.py` — all API model dataclasses, no fixtures needed
 - `test_billing.py` — `PeakTracker` and `CostService`, including P1D peak replacement logic
 - `test_schedule.py` / `test_schedule_advanced.py` — schedule resolution (active period matching, calendar patterns)
+- `test_local_time.py` — local-time behavior: band boundaries, DST days, local billing calendar, restoring UTC-saved state
 - `test_models.py` — integration smoke tests against real sample JSON (skipped if `samples/` not populated; run `scripts/dump_tariff.py` first)
 
 `asyncio_mode = "auto"` is set globally in `pyproject.toml`, so async test functions work without decorators.

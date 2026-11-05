@@ -4,21 +4,22 @@ from __future__ import annotations
 
 import logging
 import random
-import zoneinfo
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, tzinfo
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .api import (
+    ActiveTariffSnapshot,
     ServerInfo,
     TariffCollection,
     next_transition_at,
-    resolve_active_components,
 )
 from .api.client import TariffApiAuthError, TariffApiClient, TariffApiError
 from .api.models.prices_response import PricesResponse
+from .api.schedule import resolve_current_snapshot
 from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,
@@ -56,6 +57,7 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
         self._cached_collection: TariffCollection | None = None
         self._cached_last_updated: datetime | None = None
         self._cached_info: ServerInfo | None = None
+        self._local_tz: tzinfo = dt_util.get_default_time_zone()
         # None means: poll immediately on first run.
         self._next_info_poll: datetime | None = None
         self._schedule_cache_key: tuple | None = None
@@ -72,7 +74,34 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
     def tariff_id(self) -> str:
         return self._config_entry.data[CONF_TARIFF_ID]
 
-    def get_cached_day_schedule(self, tariff_id: str, today: date, tz: zoneinfo.ZoneInfo) -> list:
+    @property
+    def local_tz(self) -> tzinfo:
+        """The tariff's timezone; schedules and billing periods follow its calendar."""
+        return self._local_tz
+
+    async def _async_update_local_tz(self, name: str | None) -> None:
+        """Load the API's timezone off the event loop, keeping the current one if invalid."""
+        name = name or "Europe/Stockholm"
+        tz = await dt_util.async_get_time_zone(name)
+        if tz is None:
+            _LOGGER.warning("Unknown timezone %r from API; using %s", name, self._local_tz)
+            return
+        self._local_tz = tz
+
+    def snapshot_at(self, at: datetime) -> ActiveTariffSnapshot | None:
+        """Resolve a snapshot at *at* from cached data; None before the first update.
+
+        ``data.snapshot`` can be up to a refresh interval old, too stale for attributing
+        energy that arrives right after a tariff boundary.
+        """
+        if self.data is None:
+            return None
+        snapshot = resolve_current_snapshot(
+            self.data.snapshot.tariff, self.data.collection, at.astimezone(self.local_tz)
+        )
+        return overlay_prices_on_snapshot(snapshot, self._price_curves, at)
+
+    def get_cached_day_schedule(self, tariff_id: str, today: date, tz: tzinfo) -> list:
         """Return today's tariff schedule, cached by (tariff_id, date)."""
         cache_key = (tariff_id, today)
         if cache_key != self._schedule_cache_key:
@@ -226,7 +255,9 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
             _LOGGER.debug("Skipping /info poll — next poll at %s", self._next_info_poll.isoformat())
             info = self._cached_info  # type: ignore[assignment]
 
-        now = datetime.now(tz=UTC)
+        # Tariff schedules are local wall-clock times; UTC would shift every band.
+        tz = self.local_tz
+        now = datetime.now(tz=tz)
         collection = self._cached_collection
         tariff = collection.get_tariff(self.tariff_id)
         if tariff is None:
@@ -253,11 +284,12 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
                 },
             )
 
+        await self._async_update_local_tz(tariff.time_zone or info.timezone)
+        now = now.astimezone(self._local_tz)
+
         # Fetch price curves for components that declare a url.
         price_curve_ids = collect_price_curve_component_ids(tariff)
         if price_curve_ids:
-            tz = zoneinfo.ZoneInfo(info.timezone or "Europe/Stockholm")
-            now_local = datetime.now(tz=tz)
             urls = {
                 c.id: c.url
                 for g in (tariff.energy_price, tariff.power_price)
@@ -265,16 +297,9 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
                 for c in g.components
                 if c.url
             }
-            await self._fetch_price_curves(price_curve_ids, now_local, urls)
+            await self._fetch_price_curves(price_curve_ids, now, urls)
 
-        # A tariff that starts in the future has no active components yet; show its
-        # first day's values instead of leaving every sensor unknown.
-        resolve_at = now
-        if now.date() < tariff.valid_period.from_including:
-            tz = zoneinfo.ZoneInfo(info.timezone or "Europe/Stockholm")
-            start = tariff.valid_period.from_including
-            resolve_at = datetime(start.year, start.month, start.day, tzinfo=tz)
-        snapshot = resolve_active_components(tariff, collection, resolve_at)
+        snapshot = resolve_current_snapshot(tariff, collection, now)
 
         # Overlay fetched hourly prices onto snapshot components.
         if self._price_curves:
