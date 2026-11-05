@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
 from typing import Any
 
 import voluptuous as vol
@@ -11,6 +10,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import dt as dt_util
 
 from .api.client import TariffApiAuthError, TariffApiClient, TariffApiError
 from .const import (
@@ -109,7 +109,7 @@ class EltariffConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors=errors,
             )
 
-        now = datetime.now(tz=UTC)
+        now = dt_util.now()
         today = now.date()
         valid_tariffs = [
             t for t in collection.tariffs

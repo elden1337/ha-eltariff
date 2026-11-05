@@ -68,6 +68,7 @@ Tests live in `tests/`. Match the existing split:
 |---|---|
 | `test_models_unit.py` | API model dataclasses — no fixtures needed |
 | `test_billing.py` | `PeakTracker` and `CostService` |
+| `test_local_time.py` | Local-time behavior: band boundaries, DST days, local billing calendar |
 | `test_schedule.py` / `test_schedule_advanced.py` | Schedule resolution, calendar pattern matching |
 | `test_models.py` | Integration smoke tests against real sample JSON (skipped if `samples/` is empty) |
 

@@ -89,6 +89,8 @@ Peak tracking uses the tariff's `peakIdentificationSettings` from the API:
 
 > **Note:** If your tariff has no power (effect) component — common with price-curve-only tariffs — the integration still tracks the **observed peak** for reference (useful when the contract has an absolute power ceiling), but will not create the `charged_peak` or `peak_cost` sensors since there is no peak billing.
 
+All of this follows the **tariff's local time** (the timezone reported by the API, normally `Europe/Stockholm`), including summer and winter time: a 07:00–20:00 band starts at 07:00 on the wall clock all year, and days and billing periods begin at local midnight. Timestamps in attributes such as `stored_peaks` carry the local offset (e.g. `+01:00`). On the DST change days, the schedule has 23 or 25 hourly slots and the repeated hour in October counts as two separate peak windows.
+
 Peaks and accumulated costs **persist across HA restarts** via Home Assistant's storage (`.storage/eltariff.<entry_id>.cost_service`) — you won't lose your monthly data on a reboot. State saved in a previous billing period is discarded on startup.
 
 ## Price curves
