@@ -1,8 +1,11 @@
 name: Ruff
 
 on:
+  push:
+    # branches to consider in the event; optional, defaults to all
+    branches:
+      - main
   pull_request:
-
 permissions:
   contents: write
 
