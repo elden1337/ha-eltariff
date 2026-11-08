@@ -11,7 +11,7 @@ Derive tests from the **spec, the public contract, and the domain rules** — no
 ## Workflow
 
 1. Read `CLAUDE.md` (Testing and Time zones sections) and the spec.
-2. Find the right file in `tests/` per the existing split (`test_models_unit.py`, `test_billing.py`, `test_schedule*.py`, `test_local_time.py`, ...). Extend it, or create a new file only when no existing one fits. Reuse existing helpers and fixtures.
+2. Find the right file in `tests/` per the existing split (`test_models_unit.py`, `test_billing*.py`, `test_schedule*.py`, `test_local_time.py`, `test_price_curves.py`, `test_tariff_shape.py`, ...). Extend it, or create a new file only when no existing one fits. Reuse existing helpers and fixtures.
 3. Write focused tests: one behavior each, descriptive names, boundary cases first (period edges, DST transitions, inclusive/exclusive dates, empty/None inputs, capacity limits, old persisted state still deserialising).
 4. Run `.venv/bin/python -m pytest tests/ -q` and `.venv/bin/ruff check tests/`. Fix your own errors (syntax, imports, lint). If a new test fails because the behavior is not implemented yet, leave it failing. If it fails because the test itself is wrong, fix the test.
 5. Do not weaken, skip, or `xfail` a test to make the suite green. If an *existing* test contradicts the spec, report it rather than editing it silently.

@@ -66,6 +66,8 @@ API (REST) → TariffApiClient → TariffCollection (cached)
                               .snapshot   → sensors read this
                               .collection → used for schedule resolution
                               .next_transition → NextTransitionSensor
+                              .price_curves → PriceCurveSensor, overlaid onto the snapshot
+                              .fetched_at → real wall-clock time of the update
 ```
 
 ### API models (`api/models/`)
@@ -84,6 +86,12 @@ Stateful, but also HA-free and fully unit-testable. Three modules:
 - `iso_duration.py` — pure functions: `parse_iso_duration`, `period_start`, `period_end`, `is_same_period`. All period boundaries are calendar-aligned (P1M → first of month, P3M → quarters, P1Y → Jan 1).
 - `peak_tracker.py` — `PeakTracker` keeps the top-N peaks across a billing period (one peak per identification period). `observed_peak` = min of stored peaks (the floor the customer has already committed to). `charged_peak` is derived via `peak_function` (average/maximum/minimum).
 - `cost_service.py` — `CostService` orchestrates everything. Fed energy readings via `on_energy_update`; queried via `get_breakdown`. Fixed costs are returned as a lump sum for the billing period (annual/N, where N depends on billing period length) — not prorated mid-period.
+
+### Price curves and tariff shape
+
+- Components with a `url` are dynamic: `/tariffs` gives them a `null` price (parsed as 0 until overlaid). The coordinator fetches `PricesResponse` from the component's own `url` (e.g. `/prices?product=...`, falling back to `/prices/{id}`) and `price_curve_helpers.overlay_prices_on_snapshot` writes the current entry into the snapshot. Future prices may arrive as `forecast` or `preview`; only `start`, `end` and `priceExVat` are required (inc-VAT is derived at 25% when missing); the unit comes from the response (`PricesResponse.price_unit`).
+- `tariff_shape.py` answers structural questions (banded power, `main`/`tax` energy references, fixed price). The sensor and binary_sensor platforms use it to decide which entities to create, and remove registry entries the tariff no longer provides.
+- A tariff whose `valid_period` starts in the future is resolved at its start date so sensors are not unknown; `EltariffCoordinatorData.fetched_at` holds the real current time, which price-curve sensors use instead of `snapshot.at`.
 
 ### Time zones
 
@@ -105,9 +113,12 @@ Two-step setup: (1) select DSO from `KNOWN_DSOS`, (2) select tariff (labels incl
 
 Tests live in `tests/`. The split is intentional:
 - `test_models_unit.py` — all API model dataclasses, no fixtures needed
-- `test_billing.py` — `PeakTracker` and `CostService`, including P1D peak replacement logic
+- `test_billing.py` / `test_billing_advanced.py` / `test_billing_time_of_use_peaks.py` — `PeakTracker` and `CostService`, including P1D peak replacement logic
+- `test_iso_duration.py` — ISO duration and calendar-aligned period helpers
 - `test_schedule.py` / `test_schedule_advanced.py` — schedule resolution (active period matching, calendar patterns)
 - `test_local_time.py` — local-time behavior: band boundaries, DST days, local billing calendar, restoring UTC-saved state
+- `test_price_curves.py` — `PricesResponse` parsing, price curve overlay, client URL handling
+- `test_tariff_shape.py` — tariff-shape helpers that gate entity creation
 - `test_models.py` — integration smoke tests against real sample JSON (skipped if `samples/` not populated; run `scripts/dump_tariff.py` first)
 
 `asyncio_mode = "auto"` is set globally in `pyproject.toml`, so async test functions work without decorators.

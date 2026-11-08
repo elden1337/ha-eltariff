@@ -49,7 +49,11 @@ Entity IDs are prefixed with the device name derived from your config entry (e.g
 | `…peaks_used_for_average` | peaks | Number of peak hours used in the effect tariff average |
 | `…next_tariff_transition` | timestamp | Next datetime when the active tariff band changes |
 | `…high_tariff_active` | — | `on` when a peak-priced power component is active |
-| `…price_curve` | SEK/kWh | Current-hour price from a dynamic price-curve component (see [Price curves](#price-curves)) |
+| `…price_curve` | from API (e.g. SEK/kWh) | Current-hour price from a dynamic price-curve component (see [Price curves](#price-curves)) |
+
+Sensors are created from the shape of your tariff: `active_power_price`, `active_power_band`, `peaks_used_for_average` and `high_tariff_active` only exist when the tariff has power components with a static price (bands or peaks), so a tariff whose power price is an hourly curve does not get them. `energy_transfer_price`, `energy_tax` and `fixed_price_annual` exist only if the tariff declares the matching component. Entities the current tariff no longer provides are removed automatically.
+
+If the selected tariff starts in the future, the sensors show the values for its first day until it becomes valid.
 
 Each sensor exposes only the state attributes relevant to it. The `today_schedule` attribute (hourly slots with `start`, `end`, `band`, and `price_inc_vat`) is available on `energy_price_total`, `energy_transfer_price`, and `next_tariff_transition`.
 
@@ -75,7 +79,7 @@ The sensor state is the sum of all cost components. The breakdown is available a
 | `transmission_cost` | Accumulated energy (kWh) × transfer rate |
 | `tax_cost` | Accumulated energy (kWh) × tax rate |
 | `price_curve_cost` | Accumulated energy (kWh) × dynamic price-curve rate |
-| `fixed_cost` | Annual fixed cost prorated to elapsed billing period |
+| `fixed_cost` | Fixed cost for the whole billing period (annual cost divided by the number of billing periods per year); not prorated mid-period |
 | `total_energy_kwh` | Total energy consumed this billing period |
 | `billing_period_start` | Start of the current billing period |
 | `billing_period_end` | End of the current billing period |
@@ -97,11 +101,12 @@ Peaks and accumulated costs **persist across HA restarts** via Home Assistant's 
 
 Some DSOs define dynamic grid tariff components whose price varies hourly — published via the API's `/prices` endpoint. These are **not** electricity spot prices; they are grid tariff curves set by the DSO.
 
-When a tariff contains a component with a `url` field (pointing to `/prices/{componentId}`), the integration automatically:
+When a tariff contains a component with a `url` field (such as `/prices/{componentId}` or `/prices?product=…`; such components have a `null` price in `/tariffs`), the integration requests that URL and automatically:
 
 1. **Fetches today's prices** on the first coordinator cycle.
 2. **Polls for tomorrow's prices** starting at noon (local time) every ~5 minutes, with per-instance jitter to avoid thundering herd.
-3. **Overlays** the hourly price into the tariff snapshot so existing sensors (`energy_price_total`, `energy_transfer_price`) reflect the live rate.
+3. **Accepts** future prices published under either `forecast` or `preview`, and only `start`, `end` and `priceExVat` are required (VAT is added at 25% if `priceIncVat` is missing).
+4. **Overlays** the hourly price into the tariff snapshot so existing sensors (`energy_price_total`, `energy_transfer_price`) reflect the live rate.
 
 ### Price curve sensor
 
@@ -111,9 +116,12 @@ For each dynamic component the integration creates a `…price_curve` sensor:
 |-----------|-------------|
 | `today` | List of hourly entries for today (`start`, `end`, `price_ex_vat`, `price_inc_vat`) |
 | `tomorrow` | List of hourly entries for tomorrow (empty until published) |
+| `tomorrow_available` | `true` once tomorrow's prices are published |
+| `forecast` | Entries for days after tomorrow, if the API provides them; each has a `preview` flag that is `true` for estimates |
+| `resolution` | Entry length, taken from the response or inferred from the first entry (e.g. `PT1H`) |
 | `component_id` | UUID of the underlying price component |
 
-The sensor state is the price for the current hour.
+The sensor state is the price for the current hour, and its unit is `<currency>/<unit>` from the prices response (`kWh` if the response has no unit, `kW` for power curves). `today`, `tomorrow` and `forecast` are excluded from the recorder because of their size. For a tariff that starts in the future, the state and `today` show the current real-time values, not the start date.
 
 ### Price curve running cost
 

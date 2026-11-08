@@ -67,9 +67,12 @@ Tests live in `tests/`. Match the existing split:
 | File | What it covers |
 |---|---|
 | `test_models_unit.py` | API model dataclasses — no fixtures needed |
-| `test_billing.py` | `PeakTracker` and `CostService` |
+| `test_billing.py` / `test_billing_advanced.py` / `test_billing_time_of_use_peaks.py` | `PeakTracker` and `CostService` |
+| `test_iso_duration.py` | ISO duration and calendar-aligned period helpers |
 | `test_local_time.py` | Local-time behavior: band boundaries, DST days, local billing calendar |
 | `test_schedule.py` / `test_schedule_advanced.py` | Schedule resolution, calendar pattern matching |
+| `test_price_curves.py` | `/prices` parsing (`forecast`/`preview`, unit), price curve overlay |
+| `test_tariff_shape.py` | Tariff-shape helpers that decide which sensors are created |
 | `test_models.py` | Integration smoke tests against real sample JSON (skipped if `samples/` is empty) |
 
 `asyncio_mode = "auto"` is set globally — async test functions work without decorators.
