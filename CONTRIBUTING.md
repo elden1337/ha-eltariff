@@ -91,7 +91,7 @@ python scripts/dump_tariff.py
 
 ## For agents
 
-- Read `CLAUDE.md` for architecture detail and the full command reference before making changes.
+- Read `CLAUDE.md` for architecture detail, the command reference, and the agent work cycle (`test-writer` first, specialist review, `documenter` last).
 - Run the full test suite after every non-trivial edit: `.venv/bin/python -m pytest tests/ -q`
 - Do not add `frozen=False` to API model dataclasses — they are intentionally immutable.
 - Do not introduce HA imports into `api/models/` or `billing/`.

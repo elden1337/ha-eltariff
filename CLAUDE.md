@@ -8,14 +8,26 @@ Always check `LOCAL_WORKSPACE.md` for local development notes, setup quirks, and
 
 ## Specialist agents
 
-Two read-only Claude Code agents provide focused reviews. Consult them when a task involves domain behavior or a meaningful design change in their areas; skip them for purely mechanical edits.
+Four Claude Code agents (`.claude/agents/*.md`; their full definitions live in `agents/<name>/AGENT.md`). Two are read-only reviewers, two write within a restricted scope.
 
-| Agent | Consult when |
-|---|---|
-| `ha-specialist` | Home Assistant lifecycle, entities, platforms, `config_flow.py`, `coordinator.py`, storage/restore behavior, diagnostics, or `manifest.json` |
-| `elmarknad-specialist` | DSO tariff interpretation, price components, billing and peak calculations, VAT treatment, schedule resolution, or tariff/time-period boundaries |
+| Agent | Role | Invoke when |
+|---|---|---|
+| `test-writer` | Writes tests only, under `tests/` | **At the start** of any task that will need tests: new behavior, bug fix, changed billing/schedule/model semantics. Pass it the spec, not the implementation. |
+| `ha-specialist` | Read-only reviewer | Home Assistant lifecycle, entities, platforms, `config_flow.py`, `coordinator.py`, storage/restore behavior, diagnostics, or `manifest.json` |
+| `elmarknad-specialist` | Read-only reviewer | DSO tariff interpretation, price components, billing and peak calculations, VAT treatment, schedule resolution, or tariff/time-period boundaries |
+| `documenter` | Edits Markdown docs and agent definitions only | **Last** in every cycle that changed behavior, architecture, commands, tests layout, or the agent roster. Skip only for purely mechanical edits with no doc impact. |
 
-Give the relevant specialist the question or diff and the pertinent project context. Both agents are advisors, not implementers. Address a `REVISE` or `REJECT` verdict before finalizing, or explain why you are overriding it. Treat tariff rules as DSO-specific: verify them against the available contract or API data rather than assuming one Swedish billing rule applies universally.
+### Work cycle
+
+1. **Spec** — pin down the expected behavior (consult the specialists on design if the area calls for it).
+2. **`test-writer`** — blind tests from the spec. They may fail; that is expected (TDD).
+3. **Implement** until the new tests and the full suite pass and ruff is clean. If a test looks wrong against the spec, resolve that explicitly rather than weakening it.
+4. **Specialist review** — `ha-specialist` / `elmarknad-specialist` on the diff when it touches their areas.
+5. **`documenter`** — checks README, CLAUDE.md, CONTRIBUTING.md and agent docs against the diff and updates them.
+
+Give each agent the question or diff and the pertinent project context. Specialists are advisors, not implementers. Address a `REVISE` or `REJECT` verdict before finalizing, or explain why you are overriding it. Treat tariff rules as DSO-specific: verify them against the available contract or API data rather than assuming one Swedish billing rule applies universally.
+
+The write scopes of `test-writer` (`tests/`) and `documenter` (`*.md`, `agents/`, `.claude/agents/`) are enforced by a `PreToolUse` hook (`.claude/hooks/restrict-writes.py`) declared in each agent's frontmatter.
 
 ## Commands
 
