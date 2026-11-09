@@ -1,0 +1,15 @@
+{
+  "release": "v0.4.0",
+  "files": {
+    "catalogue.schema.json": "7c5dbf6f220479cf04aed60457d657a589abc7e4701536b4701ce8f08e4afb22",
+    "catalogueapi.json": "bf903da61e2ce6700ed047e8771c2412e1adb07b189c0ea94dd551aee3aec1b0",
+    "common.schema.json": "761dc3ac7e71d67925a26bbf2d13b95cda9e9609569804b775528176449b3c04",
+    "energy.schema.json": "477b07e52cc4cff6ebce085c1f29f7aa2ac8524d7e5397d28881204d0f3a7847",
+    "fixed.schema.json": "db93256246e6dab35631076f06dc0e2a2d631aa4119606183a12a8d29c1c4b60",
+    "gridtariffapi.json": "669fecb51566713a72fc22bdccbb56264d74b9d297b843df056156c6dae69631",
+    "power.schema.json": "3819c1b29e036418b2815c9ed8504c4ddb7eabdc67169afb0c52291b1103b0ec",
+    "price.schema.json": "3732517b3e43beac3f59cb08e2cdb5241081e8b56a7b8794a2922c53b15e35b9",
+    "tariff.schema.json": "4fad9f9be8e742953a798f0636a4452b2b7ebf491b45503f7494f00bf456c0b6",
+    "time.schema.json": "23e0123fca1df3d84efd0c5da0a4e09ea168fef77a096a147561b2ef5762e260"
+  }
+}
