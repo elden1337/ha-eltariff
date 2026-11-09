@@ -1,0 +1,27 @@
+name: Check upstream Eltariff API
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: check-upstream-eltariff-api
+  cancel-in-progress: false
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compare release definitions and report changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check_upstream_eltariff.py

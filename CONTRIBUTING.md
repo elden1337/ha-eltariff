@@ -29,6 +29,26 @@ pip install -r requirements.txt
 
 All tests must pass and ruff must report no errors before a PR is merged.
 
+## Upstream API releases
+
+The scheduled `Check upstream Eltariff API` workflow compares every JSON definition in
+the latest published RI-SE release with `.github/upstream-eltariff-baseline.json`.
+It ignores JSON object key order and formatting, and creates or updates one issue
+when definitions are added, removed, or changed. It does not monitor unreleased
+commits or automatically change the integration. A baseline means the release was
+reviewed, not that every API feature is implemented.
+
+After reviewing a new release, updating the integration and its tests as needed,
+and authenticating the GitHub CLI, refresh the fingerprints in the same PR:
+
+```bash
+python scripts/check_upstream_eltariff.py --write-baseline
+```
+
+Confirm that the generated tag is the release you reviewed; the command uses the
+latest release at the time it runs. Close the tracking issue once the PR is merged.
+The workflow can also be started manually from the Actions tab.
+
 ## Architecture
 
 ```

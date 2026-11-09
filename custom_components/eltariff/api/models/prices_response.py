@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-SWEDISH_VAT = 1.25
+from .vat import inclusive_price
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class PriceListEntry:
             end=datetime.fromisoformat(d["end"]),
             price_ex_vat=price_ex_vat,
             price_inc_vat=(
-                float(raw_inc) if raw_inc is not None else round(price_ex_vat * SWEDISH_VAT, 6)
+                float(raw_inc) if raw_inc is not None else inclusive_price(price_ex_vat)
             ),
         )
 

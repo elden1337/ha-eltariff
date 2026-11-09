@@ -13,6 +13,8 @@ class PeakIdentificationSettings:
     # ISO 8601 duration strings (e.g. "PT15M", "PT1H", "P1M")
     peak_identification_period: str | None = None
     peak_duration: str | None = None
+    peak_selection_period: str | None = None
+    peak_reset_period: str | None = None
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> PeakIdentificationSettings:
@@ -22,4 +24,6 @@ class PeakIdentificationSettings:
             peak_function=d.get("peakFunction"),
             peak_identification_period=d.get("peakIdentificationPeriod"),
             peak_duration=d.get("peakDuration"),
+            peak_selection_period=d.get("peakSelectionPeriod"),
+            peak_reset_period=d.get("peakResetPeriod"),
         )
