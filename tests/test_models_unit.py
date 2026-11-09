@@ -86,6 +86,10 @@ class TestPrice:
             p = Price.from_dict({"priceExVat": 1.0, "priceIncVat": 1.25, "currency": currency})
             assert p.currency == currency
 
+    def test_from_dict_missing_inclusive_vat_uses_same_fallback_as_price_curves(self) -> None:
+        p = Price.from_dict({"priceExVat": 0.8, "currency": "SEK"})
+        assert p.price_inc_vat == 1.0
+
 
 # ── ValidPeriod ────────────────────────────────────────────────────────────────
 
@@ -300,6 +304,13 @@ class TestCalendarPatternFromDict:
 
 
 class TestPeakIdentificationSettings:
+    def test_from_dict_v04_fields(self) -> None:
+        settings = PeakIdentificationSettings.from_dict(
+            {"peakSelectionPeriod": "P1D", "peakResetPeriod": "P3M"}
+        )
+        assert settings.peak_selection_period == "P1D"
+        assert settings.peak_reset_period == "P3M"
+
     def test_from_dict_all_fields(self) -> None:
         d = {
             "numberOfPeaksForAverageCalculation": 3,

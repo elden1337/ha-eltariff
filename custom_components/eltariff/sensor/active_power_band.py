@@ -28,6 +28,8 @@ class ActivePowerBandSensor(EltariffSensorBase):
             s = pc.peak_identification_settings
             attrs["peak_function"] = s.peak_function
             attrs["peak_identification_period"] = s.peak_identification_period
+            attrs["peak_selection_period"] = s.peak_selection_period
+            attrs["peak_reset_period"] = s.peak_reset_period
             attrs["peak_duration"] = s.peak_duration
             attrs["number_of_peaks_for_average"] = s.number_of_peaks_for_average
         return attrs

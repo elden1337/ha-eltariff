@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -74,16 +74,24 @@ class TariffApiClient:
         component_id: str,
         target_date: date | None = None,
         url: str | None = None,
+        *,
+        from_including: datetime | None = None,
+        to_excluding: datetime | None = None,
     ) -> PricesResponse:
         """Fetch hourly price curve.
 
         Uses the component's own ``url`` (e.g. ``/prices?product=GN6KWST``) when
-        given, otherwise falls back to ``/prices/{componentId}``.
+        given, otherwise uses ``/prices?componentId=...``.
         """
-        path = url or f"/prices/{component_id}"
+        path = url or f"/prices?{urlencode({'componentId': component_id})}"
+        parts = urlsplit(path)
+        query = parse_qsl(parts.query)
         if target_date is not None:
-            parts = urlsplit(path)
-            query = parse_qsl(parts.query) + [("date", target_date.isoformat())]
-            path = urlunsplit(parts._replace(query=urlencode(query)))
+            query.append(("date", target_date.isoformat()))
+        if from_including is not None:
+            query.append(("fromIncluding", from_including.isoformat()))
+        if to_excluding is not None:
+            query.append(("toExcluding", to_excluding.isoformat()))
+        path = urlunsplit(parts._replace(query=urlencode(query)))
         data = await self._get(path)
         return PricesResponse.from_dict(data)

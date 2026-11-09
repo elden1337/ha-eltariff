@@ -5,7 +5,7 @@ tariff snapshot from the coordinator.  It maintains:
 
 * Peak tracking via :class:`PeakTracker` (one per power component).
 * Incremental transmission and tax cost accumulation.
-* A billing-period clock that resets everything on period boundaries.
+* Separate billing and peak reset period clocks.
 
 Billing periods, identification periods and peak windows follow the tariff's
 local calendar, so every timestamp is converted to the service's timezone on the
@@ -69,6 +69,7 @@ class CostService:
         self._tz = tz
         self._vat_mode: str = "inc_vat"
         self._billing_duration: ParsedDuration = _DEFAULT_BILLING_PERIOD
+        self._peak_reset_duration: ParsedDuration = _DEFAULT_BILLING_PERIOD
         self._peak_duration: ParsedDuration = _DEFAULT_PEAK_DURATION
         self._id_period: ParsedDuration = _DEFAULT_IDENTIFICATION_PERIOD
         self._number_of_peaks: int = 1
@@ -79,6 +80,7 @@ class CostService:
 
         # Billing period state
         self._billing_period_start: datetime | None = None
+        self._peak_period_start: datetime | None = None
         self._deferred_peaks: list[PeakRecord] | None = None
         # Restore time, kept until configured so stale state can be discarded.
         self._pending_restore_now: datetime | None = None
@@ -115,18 +117,27 @@ class CostService:
         pc = snapshot.active_power_component
         pis = pc.peak_identification_settings if pc else None
 
-        id_period_str = (pis.peak_identification_period if pis else None) or "P1D"
+        selection = getattr(pis, "peak_selection_period", None) if pis else None
+        reset = getattr(pis, "peak_reset_period", None) if pis else None
+        id_period_str = (
+            (selection if isinstance(selection, str) else None)
+            or (pis.peak_identification_period if pis else None)
+            or "P1D"
+        )
+        reset_str = (reset if isinstance(reset, str) else None) or billing_str
         peak_dur_str = (pis.peak_duration if pis else None) or "PT1H"
         n_peaks = (pis.number_of_peaks_for_average if pis else None) or 1
         peak_fn = (pis.peak_function if pis else None) or "average"
 
         billing_dur = parse_iso_duration(billing_str)
+        reset_dur = parse_iso_duration(reset_str)
         id_dur = parse_iso_duration(id_period_str)
         peak_dur = parse_iso_duration(peak_dur_str)
 
         needs_rebuild = (
             not self._configured
             or self._billing_duration != billing_dur
+            or self._peak_reset_duration != reset_dur
             or self._id_period != id_dur
             or self._peak_duration != peak_dur
             or self._number_of_peaks != n_peaks
@@ -134,6 +145,7 @@ class CostService:
         )
 
         self._billing_duration = billing_dur
+        self._peak_reset_duration = reset_dur
         self._id_period = id_dur
         self._peak_duration = peak_dur
         self._number_of_peaks = n_peaks
@@ -156,8 +168,9 @@ class CostService:
             self._peak_trackers = new_trackers
 
             _LOGGER.debug(
-                "CostService configured: billing=%s peak_dur=%s id_period=%s n=%d fn=%s",
+                "CostService configured: billing=%s reset=%s peak_dur=%s id_period=%s n=%d fn=%s",
                 billing_str,
+                reset_str,
                 peak_dur_str,
                 id_period_str,
                 n_peaks,
@@ -202,6 +215,13 @@ class CostService:
         if self._billing_period_start is None:
             self._billing_period_start = period_start(now, self._billing_duration)
             _LOGGER.debug("Billing period start set to %s", self._billing_period_start)
+
+        if self._peak_period_start is not None and not is_same_period(
+            now, self._peak_period_start, self._peak_reset_duration
+        ):
+            self._reset_peak_period(now)
+        if self._peak_period_start is None:
+            self._peak_period_start = period_start(now, self._peak_reset_duration)
 
         # --- Accumulate energy costs ---
         if self._prev_reading is not None:
@@ -276,6 +296,9 @@ class CostService:
             billing_period_start_iso=(
                 self._billing_period_start.isoformat() if self._billing_period_start else None
             ),
+            peak_period_start_iso=(
+                self._peak_period_start.isoformat() if self._peak_period_start else None
+            ),
             peaks=all_peaks,
             current_window_start_iso=(
                 self._current_window_start.isoformat() if self._current_window_start else None
@@ -316,6 +339,9 @@ class CostService:
             return False
 
         self._billing_period_start = self._to_local(_parse_dt(state.billing_period_start_iso))
+        self._peak_period_start = self._to_local(
+            _parse_dt(state.peak_period_start_iso or state.billing_period_start_iso)
+        )
         self._current_window_start = self._to_local(_parse_dt(state.current_window_start_iso))
         self._current_window_start_reading = state.current_window_start_reading
         self._current_window_peak = state.current_window_peak
@@ -351,16 +377,17 @@ class CostService:
         saved by older versions has it on the UTC calendar.
         """
         start = self._billing_period_start
-        if start is None:
-            return
-        if is_same_period(now, start, self._billing_duration):
+        if start is not None and is_same_period(now, start, self._billing_duration):
             self._billing_period_start = period_start(now, self._billing_duration)
-            return
-        _LOGGER.info(
-            "Discarding restored cost service state from previous billing period (%s)",
-            start.isoformat(),
-        )
-        self._reset_billing_period(now)
+        elif start is not None:
+            _LOGGER.info("Discarding costs from previous billing period (%s)", start.isoformat())
+            self._reset_billing_period(now)
+        peak_start = self._peak_period_start
+        if peak_start is not None and is_same_period(now, peak_start, self._peak_reset_duration):
+            self._peak_period_start = period_start(now, self._peak_reset_duration)
+        elif peak_start is not None:
+            _LOGGER.info("Discarding peaks from previous reset period (%s)", peak_start.isoformat())
+            self._reset_peak_period(now)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -403,12 +430,16 @@ class CostService:
             self._get_or_create_tracker(cid).restore(records)
 
     def _reset_billing_period(self, now: datetime) -> None:
-        """Reset all accumulators for a new billing period."""
+        """Reset cost accumulators for a new billing period."""
         self._billing_period_start = period_start(now, self._billing_duration)
         self._accumulated_transmission = 0.0
         self._accumulated_tax = 0.0
         self._accumulated_price_curve = 0.0
         self._total_energy_kwh = 0.0
+
+    def _reset_peak_period(self, now: datetime) -> None:
+        """Reset peak trackers and the in-progress window."""
+        self._peak_period_start = period_start(now, self._peak_reset_duration)
         self._current_window_start = None
         self._current_window_start_reading = None
         self._current_window_peak = 0.0
@@ -481,7 +512,7 @@ class CostService:
         return transmission, tax, price_curve
 
     def _compute_peak_cost(self, snapshot: ActiveTariffSnapshot) -> float:
-        """charged_peak for the active component × its price."""
+        """Charge the active component's peak in the component's unit."""
         pc = snapshot.active_power_component
         if pc is None:
             return 0.0
@@ -492,6 +523,8 @@ class CostService:
         charged = tracker.charged_peak
         if charged <= 0:
             return 0.0
+        if pc.unit != "kWh":
+            charged /= self._peak_duration_hours()
         vat_mode = self._vat_mode
         price = pc.price.price_inc_vat if vat_mode == "inc_vat" else pc.price.price_ex_vat
         return charged * price

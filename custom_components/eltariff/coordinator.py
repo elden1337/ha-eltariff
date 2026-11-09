@@ -201,9 +201,13 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
 
         for cid in component_ids:
             try:
-                # Fetch without date filter — API defaults to 7 days from today,
-                # which covers both today and tomorrow.
-                resp = await self._client.get_prices(cid, url=(urls or {}).get(cid))
+                start = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+                resp = await self._client.get_prices(
+                    cid,
+                    url=(urls or {}).get(cid),
+                    from_including=start,
+                    to_excluding=start + timedelta(days=2),
+                )
                 self._price_curves[cid] = resp
                 _LOGGER.debug(
                     "Fetched price curve for component %s: %d actual, %d forecast entries",

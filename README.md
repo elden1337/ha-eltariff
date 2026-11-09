@@ -75,7 +75,7 @@ The sensor state is the sum of all cost components. The breakdown is available a
 
 | Attribute | Description |
 |-----------|-------------|
-| `peak_cost` | Charged peak (kWh) × active power price (SEK/kW) |
+| `peak_cost` | Estimated charge for the active peak period |
 | `transmission_cost` | Accumulated energy (kWh) × transfer rate |
 | `tax_cost` | Accumulated energy (kWh) × tax rate |
 | `price_curve_cost` | Accumulated energy (kWh) × dynamic price-curve rate |
@@ -87,21 +87,24 @@ The sensor state is the sum of all cost components. The breakdown is available a
 Peak tracking uses the tariff's `peakIdentificationSettings` from the API:
 
 - **`peakDuration`** (e.g. `PT1H`) — The window over which energy is measured to form a candidate peak.
-- **`peakIdentificationPeriod`** (e.g. `P1D`) — Only the single highest peak per this period is kept.
+- **`peakSelectionPeriod`** (e.g. `P1D`) — Only the single highest peak per this period is kept. Older APIs may use `peakIdentificationPeriod` instead.
+- **`peakResetPeriod`** (e.g. `P1M`) — Peaks reset at the start of each new reset period, independently of the billing period.
 - **`numberOfPeaksForAverageCalculation`** (e.g. `3`) — The top N peaks stored. The charged peak is their average.
-- **`billingPeriod`** (e.g. `P1M`) — All peaks and accumulated costs reset at the start of each new billing period.
+- **`billingPeriod`** (e.g. `P1M`) — Accumulated costs reset at the start of each billing period. When omitted, the integration estimates costs monthly. For older API data without `peakResetPeriod`, it also uses the billing period for peak resets.
 
 > **Note:** If your tariff has no power (effect) component — common with price-curve-only tariffs — the integration still tracks the **observed peak** for reference (useful when the contract has an absolute power ceiling), but will not create the `charged_peak` or `peak_cost` sensors since there is no peak billing.
 
 All of this follows the **tariff's local time** (the timezone reported by the API, normally `Europe/Stockholm`), including summer and winter time: a 07:00–20:00 band starts at 07:00 on the wall clock all year, and days and billing periods begin at local midnight. Timestamps in attributes such as `stored_peaks` carry the local offset (e.g. `+01:00`). On the DST change days, the schedule has 23 or 25 hourly slots and the repeated hour in October counts as two separate peak windows.
 
-Peaks and accumulated costs **persist across HA restarts** via Home Assistant's storage (`.storage/eltariff.<entry_id>.cost_service`) — you won't lose your monthly data on a reboot. State saved in a previous billing period is discarded on startup.
+Peaks and accumulated costs **persist across HA restarts** via Home Assistant's storage (`.storage/eltariff.<entry_id>.cost_service`). On startup, expired peaks and costs are discarded according to their respective periods.
+
+When a static or dynamic price omits `priceIncVat`, the integration estimates it using 25% Swedish VAT. This estimate may not match the customer's actual VAT treatment.
 
 ## Price curves
 
 Some DSOs define dynamic grid tariff components whose price varies hourly — published via the API's `/prices` endpoint. These are **not** electricity spot prices; they are grid tariff curves set by the DSO.
 
-When a tariff contains a component with a `url` field (such as `/prices/{componentId}` or `/prices?product=…`; such components have a `null` price in `/tariffs`), the integration requests that URL and automatically:
+When a tariff contains a component with a `url` field (such as `/prices?componentId=…` or `/prices?product=…`; such components have a `null` price in `/tariffs`), the integration requests that URL and automatically:
 
 1. **Fetches today's prices** on the first coordinator cycle.
 2. **Polls for tomorrow's prices** starting at noon (local time) every ~5 minutes, with per-instance jitter to avoid thundering herd.
@@ -232,4 +235,6 @@ automation:
 
 - **Catalogue API not implemented.** The RI-SE API spec includes an endpoint for looking up which DSO serves a given metering point (MPID). This integration does not use it — you must select your DSO manually.
 - **Price curves.** The `/prices` endpoint is supported, including component `url` values such as `/prices?product=...` and the `preview` key. Some DSOs only start publishing curves at the start of their tariff validity period; until then the price curve sensors are empty.
+- **Peak cost estimates.** When the peak reset period and billing period differ, the running cost only includes the current peak period's charge; it does not accumulate charges from earlier reset periods. Complex `peakFunction` and `costFunction` expressions are not evaluated.
+- **Peak settings.** Peak tracking uses the settings of the power component active when the integration starts; tariffs whose components have different peak settings may need a restart when those settings change.
 - **Running cost requires an energy sensor.** The integration does not integrate power readings itself. You need to provide a cumulative kWh sensor (see [Preparing an energy sensor](#preparing-an-energy-sensor)).

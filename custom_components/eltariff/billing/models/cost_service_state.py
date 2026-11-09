@@ -40,10 +40,12 @@ class CostServiceState:
     accumulated_tax_cost: float = 0.0
     accumulated_price_curve_cost: float = 0.0
     total_energy_kwh: float = 0.0
+    peak_period_start_iso: str | None = None
 
     def to_dict(self) -> dict:
         return {
             "billing_period_start": self.billing_period_start_iso,
+            "peak_period_start": self.peak_period_start_iso,
             "peaks": [p.to_dict() for p in self.peaks if hasattr(p, 'to_dict')],
             "window_start": self.current_window_start_iso,
             "window_start_reading": self.current_window_start_reading,
@@ -59,6 +61,7 @@ class CostServiceState:
     def from_dict(cls, d: dict) -> CostServiceState:
         return cls(
             billing_period_start_iso=d.get("billing_period_start"),
+            peak_period_start_iso=d.get("peak_period_start"),
             peaks=_parse_peaks(d.get("peaks")),
             current_window_start_iso=d.get("window_start"),
             current_window_start_reading=d.get("window_start_reading"),

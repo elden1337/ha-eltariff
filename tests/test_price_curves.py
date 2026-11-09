@@ -799,7 +799,31 @@ class TestPricesUrlAndPreview:
         await client.get_prices("c1", _date(2026, 12, 1), url="/prices?product=GN6KWST")
         client._get.assert_awaited_with("/prices?product=GN6KWST&date=2026-12-01")
         await client.get_prices("c1")
-        client._get.assert_awaited_with("/prices/c1")
+        client._get.assert_awaited_with("/prices?componentId=c1")
+
+    async def test_get_prices_requests_offset_aware_range(self) -> None:
+        from datetime import datetime
+        from unittest.mock import AsyncMock
+        from urllib.parse import parse_qs, urlsplit
+        from zoneinfo import ZoneInfo
+
+        from custom_components.eltariff.api.client import TariffApiClient
+
+        client = TariffApiClient("https://x/api", session=None)  # type: ignore[arg-type]
+        client._get = AsyncMock(return_value={"currency": "SEK", "actual": []})  # type: ignore[method-assign]
+        tz = ZoneInfo("Europe/Stockholm")
+        await client.get_prices(
+            "c1",
+            url="/prices?product=TEST",
+            from_including=datetime(2026, 3, 28, tzinfo=tz),
+            to_excluding=datetime(2026, 3, 30, tzinfo=tz),
+        )
+        query = parse_qs(urlsplit(client._get.await_args.args[0]).query)
+        assert query == {
+            "product": ["TEST"],
+            "fromIncluding": ["2026-03-28T00:00:00+01:00"],
+            "toExcluding": ["2026-03-30T00:00:00+02:00"],
+        }
 
 
 class TestSpecMinimalResponse:
