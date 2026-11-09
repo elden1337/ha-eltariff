@@ -168,13 +168,17 @@ class CostService:
             self._peak_trackers = new_trackers
 
             _LOGGER.debug(
-                "CostService configured: billing=%s reset=%s peak_dur=%s id_period=%s n=%d fn=%s",
-                billing_str,
-                reset_str,
-                peak_dur_str,
-                id_period_str,
+                "CostService configured: billing_set=%s billing_len=%d reset_set=%s reset_len=%d peak_dur_set=%s peak_dur_len=%d id_period_set=%s id_period_len=%d n=%d fn_set=%s",
+                bool(billing_str),
+                len(billing_str),
+                bool(reset_str),
+                len(reset_str),
+                bool(peak_dur_str),
+                len(peak_dur_str),
+                bool(id_period_str),
+                len(id_period_str),
                 n_peaks,
-                peak_fn,
+                bool(peak_fn),
             )
 
         self._configured = True
