@@ -17,6 +17,8 @@ KNOWN_DSOS: dict[str, dict[str, str]] = {
     },
     "tekniska_verken": {
         "name": "Tekniska Verken",
+        # Single shared endpoint for Tekniska verken Linköping Nät AB,
+        # Tekniska verken Katrineholm Nät AB and Mjölby Kraftnät AB.
         "base_url": "https://api.tekniskaverken.net/subscription/public/v0",
     },
     "norrtalje_energi": {
@@ -32,6 +34,15 @@ KNOWN_DSOS: dict[str, dict[str, str]] = {
         "name": "Kraftringen Nät AB",
         # /tariffs is part of the base path for this DSO's API
         "base_url": "https://apim.kraftringen.se/customer/tariffs",
+    },
+    "falu_elnat": {
+        "name": "Falu Elnät AB",
+        "base_url": "https://api.grid-tariff.bitv.is/pub/falu-elnat/v0",
+    },
+    "natkraft_boras": {
+        "name": "Nätkraft Borås Infra AB",
+        # /tariffs is part of the base path for this DSO's API
+        "base_url": "https://api.natkraftboras.se/tariffs",
     },
 }
 

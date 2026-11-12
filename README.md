@@ -11,10 +11,12 @@ The structure of Swedish grid tariffs is complex, with multiple price components
 | DSO | Key |
 |-----|-----|
 | Göteborg Energi Nät AB | `goteborg_energi` |
-| Tekniska Verken | `tekniska_verken` |
+| Tekniska Verken (Linköping, Katrineholm, Mjölby Kraftnät) | `tekniska_verken` |
 | Norrtälje Energi AB | `norrtalje_energi` |
 | Skånska Energi Nät AB | `skanska_energi` |
 | Kraftringen Nät AB | `kraftringen_nat` |
+| Falu Elnät AB | `falu_elnat` |
+| Nätkraft Borås Infra AB | `natkraft_boras` |
 
 
 ## Installation
