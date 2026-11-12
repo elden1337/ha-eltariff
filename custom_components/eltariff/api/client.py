@@ -26,15 +26,27 @@ class TariffApiClient:
         base_url: str,
         session: aiohttp.ClientSession,
         bearer_token: str | None = None,
+        *,
+        auth_header: str = "Authorization",
+        auth_scheme: str | None = "Bearer",
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._session = session
         self._bearer_token = bearer_token
+        # Some DSOs (e.g. Azure API Management gateways) expect the API key in a
+        # custom header with no scheme prefix instead of a standard Bearer token.
+        self._auth_header = auth_header
+        self._auth_scheme = auth_scheme
 
     def _headers(self) -> dict[str, str]:
         headers: dict[str, str] = {"Accept": "application/json"}
         if self._bearer_token:
-            headers["Authorization"] = f"Bearer {self._bearer_token}"
+            value = (
+                f"{self._auth_scheme} {self._bearer_token}"
+                if self._auth_scheme
+                else self._bearer_token
+            )
+            headers[self._auth_header] = value
         return headers
 
     async def _get(self, path: str) -> Any:

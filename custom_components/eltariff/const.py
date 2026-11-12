@@ -10,7 +10,7 @@ CONF_BEARER_TOKEN = "bearer_token"
 CONF_DSO_KEY = "dso_key"
 CONF_ENERGY_SENSOR = "energy_sensor_entity_id"
 
-KNOWN_DSOS: dict[str, dict[str, str]] = {
+KNOWN_DSOS: dict[str, dict[str, str | bool | None]] = {
     "goteborg_energi": {
         "name": "Göteborg Energi Nät AB",
         "base_url": "https://api.goteborgenergi.cloud/gridtariff/v0",
@@ -43,6 +43,18 @@ KNOWN_DSOS: dict[str, dict[str, str]] = {
         "name": "Nätkraft Borås Infra AB",
         # /tariffs is part of the base path for this DSO's API
         "base_url": "https://api.natkraftboras.se/tariffs",
+    },
+    "eon_energidistribution": {
+        "name": "E.ON Energidistribution AB",
+        "base_url": "https://api.apps.eon.se/finance-service/api/v1/grid",
+        # Azure API Management gateway: requires a subscription key obtained from
+        # E.ON's developer portal, sent in a custom header with no scheme prefix,
+        # rather than a standard "Authorization: Bearer" token.
+        "auth_header": "Ocp-Apim-Subscription-Key",
+        "auth_scheme": None,
+        # Unlike the other DSOs, /info and /tariffs require the key up front —
+        # the config flow asks for it before validating the endpoint.
+        "requires_auth": True,
     },
 }
 
