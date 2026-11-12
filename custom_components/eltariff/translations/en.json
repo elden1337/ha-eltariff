@@ -14,6 +14,13 @@
           "tariff_id": "Tariff"
         }
       },
+      "auth": {
+        "title": "Enter API credentials",
+        "description": "This grid operator requires an API key before its tariffs can be looked up.",
+        "data": {
+          "bearer_token": "API key"
+        }
+      },
       "options": {
         "title": "Options",
         "data": {
@@ -28,7 +35,7 @@
     },
     "error": {
       "cannot_connect": "Failed to connect to the API",
-      "auth_error": "Authentication failed — check bearer token",
+      "auth_error": "Authentication failed — check your API key",
       "invalid_url": "URL must not be empty for a custom endpoint",
       "no_valid_tariffs": "No currently valid tariffs found at this endpoint",
       "unknown": "Unexpected error"

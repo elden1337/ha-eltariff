@@ -23,11 +23,13 @@ from .api.schedule import resolve_current_snapshot
 from .const import (
     CONF_BASE_URL,
     CONF_BEARER_TOKEN,
+    CONF_DSO_KEY,
     CONF_TARIFF_ID,
     CONF_TARIFF_NAME,
     DOMAIN,
     INFO_POLL_BASE_SECONDS,
     INFO_POLL_JITTER_SECONDS,
+    KNOWN_DSOS,
     PRICE_CURVE_POLL_INTERVAL_SECONDS,
     PRICE_CURVE_POLL_JITTER_SECONDS,
     PRICE_CURVE_POLL_START_HOUR,
@@ -128,6 +130,7 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
 
     def _build_client(self) -> TariffApiClient:
         session = async_get_clientsession(self.hass)
+        dso = KNOWN_DSOS.get(self._config_entry.data.get(CONF_DSO_KEY), {})
         return TariffApiClient(
             base_url=self._config_entry.data[CONF_BASE_URL],
             session=session,
@@ -135,6 +138,8 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
                 self._config_entry.options.get(CONF_BEARER_TOKEN)
                 or self._config_entry.data.get(CONF_BEARER_TOKEN)
             ),
+            auth_header=dso.get("auth_header", "Authorization"),
+            auth_scheme=dso.get("auth_scheme", "Bearer"),
         )
 
     def _next_randomized_poll(self) -> datetime:

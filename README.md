@@ -11,10 +11,15 @@ The structure of Swedish grid tariffs is complex, with multiple price components
 | DSO | Key |
 |-----|-----|
 | Göteborg Energi Nät AB | `goteborg_energi` |
-| Tekniska Verken | `tekniska_verken` |
+| Tekniska Verken (Linköping, Katrineholm, Mjölby Kraftnät) | `tekniska_verken` |
 | Norrtälje Energi AB | `norrtalje_energi` |
 | Skånska Energi Nät AB | `skanska_energi` |
 | Kraftringen Nät AB | `kraftringen_nat` |
+| Falu Elnät AB | `falu_elnat` |
+| Nätkraft Borås Infra AB | `natkraft_boras` |
+| E.ON Energidistribution AB | `eon_energidistribution` |
+
+> **Note on E.ON Energidistribution AB:** E.ON's API is gated by Azure API Management and requires a subscription key (obtained from E.ON's developer portal) sent in an `Ocp-Apim-Subscription-Key` header, rather than a standard bearer token. E.ON is registered in the official [RI-SE Grid Tariff catalogue](https://eltariff.deplide.org/tariffcatalogue/all) alongside all other DSOs in this list, which is strong evidence it implements the same API schema — but the exact response body could not be fetched and verified end-to-end without a subscription key. Please [open an issue](../../issues) if you find a schema mismatch.
 
 
 ## Installation
@@ -27,9 +32,9 @@ The structure of Swedish grid tariffs is complex, with multiple price components
 
 The setup flow has three required steps, plus one optional step if you want running cost and peak tracking:
 
-1. **Pick DSO** — select your grid owner from the dropdown. The integration validates the endpoint before proceeding.
+1. **Pick DSO** — select your grid owner from the dropdown. The integration validates the endpoint before proceeding. If the DSO requires an API key up front (currently E.ON), you'll be prompted for it here before the endpoint can be validated.
 2. **Pick tariff** — select your tariff from the list. The tariff currently valid today is listed first.
-3. **Options** — choose whether sensor values should include or exclude VAT (`inc_vat` / `ex_vat`). Optionally enter a Bearer token if your DSO requires authentication.
+3. **Options** — choose whether sensor values should include or exclude VAT (`inc_vat` / `ex_vat`). Optionally enter a bearer token / API key if your DSO requires authentication and you didn't already provide one in step 1.
 4. **(Optional) Running cost setup** — select an **energy sensor** to enable `running_cost`, `observed_peak`, and `charged_peak` sensors (see [Optional step 4 — enable running cost tracking](#optional-step-4--enable-running-cost-tracking)).
 
 ## Sensors
