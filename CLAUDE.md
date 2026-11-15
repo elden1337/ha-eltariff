@@ -90,7 +90,7 @@ Stateful, but also HA-free and fully unit-testable. Three modules:
 ### Price curves and tariff shape
 
 - Components with a `url` are dynamic: `/tariffs` gives them a `null` price (parsed as 0 until overlaid). The coordinator fetches `PricesResponse` from the component's own `url` (e.g. `/prices?product=...`, falling back to `/prices?componentId=...`) for today and tomorrow, and `price_curve_helpers.overlay_prices_on_snapshot` writes the current entry into the snapshot. Future prices may arrive as `forecast` or `preview`; only `start`, `end` and `priceExVat` are required (inc-VAT is derived at 25% when missing); the unit comes from the response (`PricesResponse.price_unit`).
-- The "Energy price total" sensor sums energy components plus power-group components that have a `url` (`ActiveTariffSnapshot.curve_power_components`, `total_price_with_curves_{inc,ex}_vat`); static banded power is excluded. It sums at full precision and rounds once. `CostService` billing is unaffected.
+- The "Energy price total" sensor sums energy components plus power-group components that have a `url` (`ActiveTariffSnapshot.curve_power_components`, `total_price_with_curves_{inc,ex}_vat`); static banded power is excluded. It sums at full precision and rounds once. `CostService` also bills these power-group curve components per consumed kWh into `price_curve_cost` (`_energy_rates` + `curve_power_components`), and `CostService._peak_component` skips `url` components so they are never charged as a peak. Assumption: the API labels e.g. Göteborg Energi Nät's hourly "timpris" as unit kW, but it is deliberately treated as per-kWh; the `url` check is a structural proxy and ignores the unit. Not retroactive: `peak_cost` already accrued for such a component mid-period is not migrated.
 - `tariff_shape.py` answers structural questions (banded power, `main`/`tax` energy references, fixed price). The sensor and binary_sensor platforms use it to decide which entities to create, and remove registry entries the tariff no longer provides.
 - A tariff whose `valid_period` starts in the future is resolved at its start date so sensors are not unknown; `EltariffCoordinatorData.fetched_at` holds the real current time, which price-curve sensors use instead of `snapshot.at`.
 
@@ -119,6 +119,7 @@ Tests live in `tests/`. The split is intentional:
 - `test_schedule.py` / `test_schedule_advanced.py` — schedule resolution (active period matching, calendar patterns)
 - `test_local_time.py` — local-time behavior: band boundaries, DST days, local billing calendar, restoring UTC-saved state
 - `test_price_curves.py` — `PricesResponse` parsing, price curve overlay, client URL handling
+- `test_billing_power_curve.py` — power-group price-curve components billed per kWh, not as a peak
 - `test_tariff_shape.py` — tariff-shape helpers that gate entity creation
 - `test_energy_price_total_sensor.py` — "Energy price total" sensor: energy plus power-group price-curve components, single rounding, `components` attribute
 - `test_models.py` — integration smoke tests against real sample JSON (skipped if `samples/` not populated; run `scripts/dump_tariff.py` first)

@@ -133,7 +133,7 @@ The sensor state is the price for the current hour, and its unit is `<currency>/
 
 ### Price curve running cost
 
-When an energy sensor is configured and price-curve components exist, a `…price_curve_cost` sensor tracks the accumulated cost from those components separately from the static transmission fee.  This cost is also included in the `…running_cost` total and its `price_curve_cost` attribute.
+When an energy sensor is configured and price-curve components exist, a `…price_curve_cost` sensor tracks the accumulated cost from those components separately from the static transmission fee.  This cost is also included in the `…running_cost` total and its `price_curve_cost` attribute. Power-group curve components (for example an hourly "timpris" that the API labels kW) are billed per consumed kWh here, not as a peak, so they do not affect `observed_peak`/`charged_peak`.
 
 ### Coexistence with static tariffs
 

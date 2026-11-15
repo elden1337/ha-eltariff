@@ -92,6 +92,7 @@ Tests live in `tests/`. Match the existing split:
 | `test_local_time.py` | Local-time behavior: band boundaries, DST days, local billing calendar |
 | `test_schedule.py` / `test_schedule_advanced.py` | Schedule resolution, calendar pattern matching |
 | `test_price_curves.py` | `/prices` parsing (`forecast`/`preview`, unit), price curve overlay |
+| `test_billing_power_curve.py` | Power-group price-curve components ("timpris") billed per kWh, never as a peak |
 | `test_tariff_shape.py` | Tariff-shape helpers that decide which sensors are created |
 | `test_energy_price_total_sensor.py` | Energy price total sensor: energy + power-curve components, rounding, attributes |
 | `test_models.py` | Integration smoke tests against real sample JSON (skipped if `samples/` is empty) |

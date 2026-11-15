@@ -114,7 +114,7 @@ class CostService:
         tariff = snapshot.tariff
         billing_str = tariff.billing_period or "P1M"
 
-        pc = snapshot.active_power_component
+        pc = self._peak_component(snapshot)
         pis = pc.peak_identification_settings if pc else None
 
         selection = getattr(pis, "peak_selection_period", None) if pis else None
@@ -404,13 +404,34 @@ class CostService:
             return dt
         return dt.astimezone(self._tz)
 
+    @staticmethod
+    def _peak_component(snapshot: ActiveTariffSnapshot):
+        """The power component that carries peak billing.
+
+        Price-curve components (``url`` set, e.g. an hourly "timpris") are billed per
+        consumed kWh via ``_energy_rates``, never as a peak, so they are skipped here.
+        This is a deliberate choice: e.g. Göteborg Energi Nät's hourly "timpris" is labelled
+        unit kW by the API but is treated as a per-kWh cost. The ``url`` check is a structural
+        proxy and ignores the unit. Real components have ``url`` None or a str; the isinstance
+        check also keeps MagicMock components in tests counting as peak components.
+        """
+        first = snapshot.active_power_component
+        if first is None or not isinstance(getattr(first, "url", None), str):
+            return first
+        comps = snapshot.active_power_components
+        if isinstance(comps, (list, tuple)):
+            for pc in comps:
+                if not isinstance(getattr(pc, "url", None), str):
+                    return pc
+        return None
+
     def _component_key(self, snapshot: ActiveTariffSnapshot) -> str:
         """Return a stable string key for the active power component.
 
         Falls back to _GLOBAL_KEY when the component has no string id (e.g.
         plain MagicMock in tests that don't set pc.id explicitly).
         """
-        pc = snapshot.active_power_component
+        pc = self._peak_component(snapshot)
         if pc is None:
             return "__none__"
         cid = getattr(pc, "id", None)
@@ -514,11 +535,16 @@ class CostService:
                 price_curve += price
             else:
                 transmission += price
+        # Power-group price curves (e.g. hourly timpris) are billed per kWh as well.
+        for comp in snapshot.curve_power_components:
+            price_curve += (
+                comp.price.price_inc_vat if vat_mode == "inc_vat" else comp.price.price_ex_vat
+            )
         return transmission, tax, price_curve
 
     def _compute_peak_cost(self, snapshot: ActiveTariffSnapshot) -> float:
         """Charge the active component's peak in the component's unit."""
-        pc = snapshot.active_power_component
+        pc = self._peak_component(snapshot)
         if pc is None:
             return 0.0
         key = self._component_key(snapshot)
@@ -568,7 +594,7 @@ class CostService:
         """Best-effort currency from the snapshot."""
         for comp in snapshot.active_energy_components:
             return comp.price.currency
-        pc = snapshot.active_power_component
+        pc = snapshot.active_power_component  # any power component, curve included
         if pc:
             return pc.price.currency
         return "SEK"
