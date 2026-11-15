@@ -31,3 +31,28 @@ class ActiveTariffSnapshot:
     @property
     def total_energy_price_ex_vat(self) -> float:
         return sum(c.price.price_ex_vat for c in self.active_energy_components)
+
+    @property
+    def curve_power_components(self) -> list[PriceComponent]:
+        """Active power-group price-curve components (``url`` set), not already energy ones."""
+        energy_ids = {c.id for c in self.active_energy_components}
+        seen: set[str] = set()
+        out: list[PriceComponent] = []
+        for c in self.active_power_components:
+            if c.url and c.id not in energy_ids and c.id not in seen:
+                seen.add(c.id)
+                out.append(c)
+        return out
+
+    @property
+    def total_price_with_curves_inc_vat(self) -> float:
+        """Energy components plus power-group price curves (full precision)."""
+        return self.total_energy_price_inc_vat + sum(
+            c.price.price_inc_vat for c in self.curve_power_components
+        )
+
+    @property
+    def total_price_with_curves_ex_vat(self) -> float:
+        return self.total_energy_price_ex_vat + sum(
+            c.price.price_ex_vat for c in self.curve_power_components
+        )

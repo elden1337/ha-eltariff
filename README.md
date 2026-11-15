@@ -47,7 +47,7 @@ Entity IDs are prefixed with the device name derived from your config entry (e.g
 |--------|------|-------------|
 | `…active_power_price` | SEK/kW | Price of the currently active power (effect) component |
 | `…active_power_band` | — | Reference label of the active power band (e.g. `high`, `low`) |
-| `…energy_price_total` | SEK/kWh | Sum of all active energy price components |
+| `…energy_price_total` | SEK/kWh | Sum of all active energy price components, plus power-group price-curve components (dynamic, with a `url`, e.g. Göteborg Energi Nät "Timpris, effektavgift"); static banded power is excluded. Summed at full precision, rounded once to 2 decimals. The `components` attribute entries carry `group` and `unit` |
 | `…energy_transfer_price` | SEK/kWh | The main energy transfer component (reference `main`) |
 | `…energy_tax` | SEK/kWh | Energy tax component (reference `tax`) |
 | `…fixed_price_annual` | SEK/year | Sum of all active fixed-price components |
