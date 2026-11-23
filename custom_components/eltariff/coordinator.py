@@ -211,7 +211,7 @@ class EltariffCoordinator(DataUpdateCoordinator[EltariffCoordinatorData]):
                     cid,
                     url=(urls or {}).get(cid),
                     from_including=start,
-                    to_excluding=start + timedelta(days=2),
+                    to_excluding=start + timedelta(days=7),
                 )
                 self._price_curves[cid] = resp
                 _LOGGER.debug(
