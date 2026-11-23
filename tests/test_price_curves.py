@@ -828,7 +828,13 @@ class TestPricesUrlAndPreview:
 
 
 @pytest.mark.parametrize("start_date", [date(2026, 11, 23), date(2026, 3, 28)])
-async def test_coordinator_fetches_preview_through_sensor(start_date: date) -> None:
+@pytest.mark.parametrize(
+    ("forecast_key", "forecast_days"),
+    [(None, 0), ("preview", 0), ("preview", 3), ("forecast", 3), ("preview", 5)],
+)
+async def test_coordinator_fetches_preview_through_sensor(
+    start_date: date, forecast_key: str | None, forecast_days: int
+) -> None:
     from types import SimpleNamespace
     from unittest.mock import AsyncMock, MagicMock
     from urllib.parse import parse_qs, urlsplit
@@ -844,7 +850,7 @@ async def test_coordinator_fetches_preview_through_sensor(start_date: date) -> N
     start = datetime.combine(start_date, datetime.min.time(), tzinfo=tz)
     now = start + timedelta(hours=10)
     entries = []
-    for hour in range(7 * 24):
+    for hour in range((2 + forecast_days) * 24):
         entry_start = start + timedelta(hours=hour)
         entries.append({
             "start": entry_start.isoformat(),
@@ -860,16 +866,18 @@ async def test_coordinator_fetches_preview_through_sensor(start_date: date) -> N
         assert lower == start
         assert upper == start + timedelta(days=7)
         assert upper.utcoffset() == (start + timedelta(days=7)).utcoffset()
-        return {
+        response = {
             "currency": "SEK",
             "unit": "kW",
             "actual": [
                 e for e in entries[:48] if lower <= datetime.fromisoformat(e["start"]) < upper
             ],
-            "preview": [
-                e for e in entries[48:] if lower <= datetime.fromisoformat(e["start"]) < upper
-            ],
         }
+        if forecast_key is not None:
+            response[forecast_key] = [
+                e for e in entries[48:] if lower <= datetime.fromisoformat(e["start"]) < upper
+            ]
+        return response
 
     client = TariffApiClient("https://example.test", session=None)  # type: ignore[arg-type]
     client._get = AsyncMock(side_effect=get_response)  # type: ignore[method-assign]
@@ -895,10 +903,13 @@ async def test_coordinator_fetches_preview_through_sensor(start_date: date) -> N
     assert len(attrs["today"]) == 24
     assert len(attrs["tomorrow"]) == 24
     assert attrs["tomorrow_available"] is True
-    assert len(attrs["forecast"]) == 120
+    assert len(attrs["forecast"]) == forecast_days * 24
     assert all(entry["preview"] for entry in attrs["forecast"])
-    assert attrs["forecast"][0]["start"] == (start + timedelta(days=2)).isoformat()
-    assert attrs["forecast"][-1]["start"] == (start + timedelta(days=6, hours=23)).isoformat()
+    if forecast_days:
+        assert attrs["forecast"][0]["start"] == (start + timedelta(days=2)).isoformat()
+        assert attrs["forecast"][-1]["start"] == (
+            start + timedelta(days=forecast_days + 1, hours=23)
+        ).isoformat()
 
 
 class TestSpecMinimalResponse:
