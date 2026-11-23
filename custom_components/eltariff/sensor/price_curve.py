@@ -102,9 +102,10 @@ class PriceCurveSensor(EltariffSensorBase):
             **self._last_updated_attr(),
             "component_id": self._component_id,
             "resolution": resp.resolution,
-            "today": self._entries_as_dicts(today_entries),
-            "tomorrow": self._entries_as_dicts(tomorrow_entries),
-            "tomorrow_available": len(tomorrow_entries) > 0,
+            "today": self._entries_as_dicts(today_entries, preview_ids),
+            "tomorrow": self._entries_as_dicts(tomorrow_entries, preview_ids),
+            # Only fixed (actual) prices count; preview estimates may still change.
+            "tomorrow_available": resp.has_date(tomorrow),
             # Days after tomorrow, if the API provides them; `preview` marks estimates.
             "forecast": self._entries_as_dicts(forecast_entries, preview_ids),
         }

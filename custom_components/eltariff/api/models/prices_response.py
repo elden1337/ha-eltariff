@@ -82,8 +82,16 @@ class PricesResponse:
 
     @property
     def all_entries(self) -> list[PriceListEntry]:
-        """All entries (actual + forecast), sorted by start time."""
-        combined = list(self.actual) + list(self.forecast)
+        """Actual entries plus forecast/preview entries for periods without an actual price.
+
+        Actual (fixed) prices always take precedence: a preview entry overlapping
+        any actual entry is dropped, so estimates never replace the real price.
+        """
+        combined = list(self.actual) + [
+            f
+            for f in self.forecast
+            if not any(a.start < f.end and f.start < a.end for a in self.actual)
+        ]
         return sorted(combined, key=lambda e: e.start)
 
     def entry_at(self, dt: datetime) -> PriceListEntry | None:
@@ -98,5 +106,9 @@ class PricesResponse:
         return [e for e in self.all_entries if e.start.date() == target_date]
 
     def has_date(self, target_date) -> bool:
-        """Return True if any entry starts on *target_date*."""
-        return any(e.start.date() == target_date for e in self.all_entries)
+        """Return True if any *actual* (fixed) entry starts on *target_date*.
+
+        Forecast/preview entries are ignored so polling continues until the
+        fixed prices for the date have been published.
+        """
+        return any(e.start.date() == target_date for e in self.actual)

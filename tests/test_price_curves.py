@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -408,19 +409,18 @@ class TestPollTimingLogic:
     """Test the price curve polling timing logic (pure logic, no HA deps)."""
 
     def test_has_date_gates_polling(self) -> None:
-        """If all curves already have tomorrow, no poll needed."""
+        """Only actual (fixed) prices for tomorrow stop polling; preview does not."""
         tomorrow = date(2026, 5, 20)
-        curves = {
-            "c1": _make_prices_response(
-                component_id="c1",
-                hours=24,
-                base_date=date(2026, 5, 19),
-                forecast_hours=24,
-                forecast_date=tomorrow,
-            )
-        }
-        # All curves have tomorrow's date → no further polling needed.
-        assert all(resp.has_date(tomorrow) for resp in curves.values())
+        resp = _make_prices_response(
+            component_id="c1",
+            hours=24,
+            base_date=date(2026, 5, 19),
+            forecast_hours=24,
+            forecast_date=tomorrow,
+        )
+        assert not resp.has_date(tomorrow)
+        resp = replace(resp, actual=resp.actual + resp.forecast, forecast=[])
+        assert resp.has_date(tomorrow)
 
     def test_missing_tomorrow_needs_polling(self) -> None:
         """If any curve is missing tomorrow, we need to poll."""
@@ -715,7 +715,8 @@ class TestPriceCurveSensorLogic:
 
         assert len(today_entries) == 24
         assert len(tomorrow_entries) == 24
-        assert resp.has_date(tomorrow)
+        # Tomorrow only has preview entries, so it is not yet available.
+        assert not resp.has_date(tomorrow)
 
     def test_no_tomorrow_available(self) -> None:
         curves = {"c1": _make_prices_response(component_id="c1", hours=24)}
@@ -870,3 +871,35 @@ class TestPriceUnit:
     def test_defaults_to_kwh(self) -> None:
         resp = PricesResponse.from_dict({"currency": "SEK", "actual": []})
         assert resp.price_unit == "SEK/kWh"
+
+
+class TestActualTakesPrecedenceOverPreview:
+    @staticmethod
+    def _entry(start: str, end: str, price: float) -> dict:
+        return {"start": start, "end": end, "priceExVat": price}
+
+    def _resp(self) -> PricesResponse:
+        return PricesResponse.from_dict(
+            {
+                "currency": "SEK",
+                "actual": [
+                    self._entry("2026-11-23T00:00:00+01:00", "2026-11-23T01:00:00+01:00", 1.0),
+                ],
+                "preview": [
+                    self._entry("2026-11-23T00:00:00+01:00", "2026-11-23T01:00:00+01:00", 9.0),
+                    self._entry("2026-11-24T00:00:00+01:00", "2026-11-24T01:00:00+01:00", 5.0),
+                ],
+            }
+        )
+
+    def test_entry_at_prefers_actual(self) -> None:
+        resp = self._resp()
+        entry = resp.entry_at(datetime.fromisoformat("2026-11-23T00:30:00+01:00"))
+        assert entry is not None and entry.price_ex_vat == 1.0
+        assert [e.price_ex_vat for e in resp.entries_for_date(date(2026, 11, 23))] == [1.0]
+
+    def test_preview_fills_gaps_but_does_not_count_as_available(self) -> None:
+        resp = self._resp()
+        assert [e.price_ex_vat for e in resp.entries_for_date(date(2026, 11, 24))] == [5.0]
+        assert resp.has_date(date(2026, 11, 23)) is True
+        assert resp.has_date(date(2026, 11, 24)) is False
