@@ -827,6 +827,91 @@ class TestPricesUrlAndPreview:
         }
 
 
+@pytest.mark.parametrize("start_date", [date(2026, 11, 23), date(2026, 3, 28)])
+@pytest.mark.parametrize(
+    ("forecast_key", "forecast_days"),
+    [(None, 0), ("preview", 0), ("preview", 3), ("forecast", 3), ("preview", 5)],
+)
+async def test_coordinator_fetches_preview_through_sensor(
+    start_date: date, forecast_key: str | None, forecast_days: int
+) -> None:
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock
+    from urllib.parse import parse_qs, urlsplit
+    from zoneinfo import ZoneInfo
+
+    pytest.importorskip("homeassistant")
+    from custom_components.eltariff.api.client import TariffApiClient
+    from custom_components.eltariff.const import VAT_MODE_INC
+    from custom_components.eltariff.coordinator import EltariffCoordinator
+    from custom_components.eltariff.sensor.price_curve import PriceCurveSensor
+
+    tz = ZoneInfo("Europe/Stockholm")
+    start = datetime.combine(start_date, datetime.min.time(), tzinfo=tz)
+    now = start + timedelta(hours=10)
+    entries = []
+    for hour in range((2 + forecast_days) * 24):
+        entry_start = start + timedelta(hours=hour)
+        entries.append({
+            "start": entry_start.isoformat(),
+            "end": (entry_start + timedelta(hours=1)).isoformat(),
+            "priceExVat": 0.1,
+        })
+
+    async def get_response(path: str) -> dict:
+        query = parse_qs(urlsplit(path).query)
+        assert query["product"] == ["GN10KWST"]
+        lower = datetime.fromisoformat(query["fromIncluding"][0])
+        upper = datetime.fromisoformat(query["toExcluding"][0])
+        assert lower == start
+        assert upper == start + timedelta(days=7)
+        assert upper.utcoffset() == (start + timedelta(days=7)).utcoffset()
+        response = {
+            "currency": "SEK",
+            "unit": "kW",
+            "actual": [
+                e for e in entries[:48] if lower <= datetime.fromisoformat(e["start"]) < upper
+            ],
+        }
+        if forecast_key is not None:
+            response[forecast_key] = [
+                e for e in entries[48:] if lower <= datetime.fromisoformat(e["start"]) < upper
+            ]
+        return response
+
+    client = TariffApiClient("https://example.test", session=None)  # type: ignore[arg-type]
+    client._get = AsyncMock(side_effect=get_response)  # type: ignore[method-assign]
+    coordinator = EltariffCoordinator.__new__(EltariffCoordinator)
+    coordinator._client = client
+    coordinator._price_curves = {}
+    coordinator._next_price_poll = None
+    coordinator._price_poll_hysteresis = 0
+    await coordinator._fetch_price_curves(
+        ["c1"], now, {"c1": "/prices?product=GN10KWST"}
+    )
+
+    sensor_coordinator = MagicMock()
+    sensor_coordinator.data = SimpleNamespace(
+        price_curves=coordinator._price_curves,
+        fetched_at=now,
+        info=SimpleNamespace(tariff_data_last_updated=None),
+    )
+    sensor = PriceCurveSensor(
+        sensor_coordinator, SimpleNamespace(entry_id="entry"), VAT_MODE_INC, "c1"
+    )
+    attrs = sensor.extra_state_attributes
+    assert len(attrs["today"]) == 24
+    assert len(attrs["tomorrow"]) == 24
+    assert attrs["tomorrow_available"] is True
+    assert len(attrs["forecast"]) == forecast_days * 24
+    assert all(entry["preview"] for entry in attrs["forecast"])
+    if forecast_days:
+        assert attrs["forecast"][0]["start"] == (start + timedelta(days=2)).isoformat()
+        assert attrs["forecast"][-1]["start"] == (
+            start + timedelta(days=forecast_days + 1, hours=23)
+        ).isoformat()
+
+
 class TestSpecMinimalResponse:
     """Response with only the fields the Eltariff-API spec requires."""
 
