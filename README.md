@@ -113,7 +113,7 @@ When a tariff contains a component with a `url` field (such as `/prices?componen
 
 1. **Fetches today's prices** on the first coordinator cycle.
 2. **Polls for tomorrow's prices** starting at noon (local time) every ~5 minutes, with per-instance jitter to avoid thundering herd.
-3. **Accepts** future prices published under either `forecast` or `preview`, and only `start`, `end` and `priceExVat` are required (VAT is added at 25% if `priceIncVat` is missing).
+3. **Accepts** future prices published under either `forecast` or `preview`. Fixed `actual` prices always take precedence over overlapping preview estimates, and polling for tomorrow continues until its `actual` prices are published. Only `start`, `end` and `priceExVat` are required (VAT is added at 25% if `priceIncVat` is missing).
 4. **Overlays** the hourly price into the tariff snapshot so existing sensors (`energy_price_total`, `energy_transfer_price`) reflect the live rate.
 
 ### Price curve sensor
@@ -122,9 +122,9 @@ For each dynamic component the integration creates a `…price_curve` sensor:
 
 | Attribute | Description |
 |-----------|-------------|
-| `today` | List of hourly entries for today (`start`, `end`, `price_ex_vat`, `price_inc_vat`) |
-| `tomorrow` | List of hourly entries for tomorrow (empty until published) |
-| `tomorrow_available` | `true` once tomorrow's prices are published |
+| `today` | List of hourly entries for today (`start`, `end`, `price_ex_vat`, `price_inc_vat`, `preview`) |
+| `tomorrow` | List of hourly entries for tomorrow; may contain preview estimates (`preview: true`) until fixed prices are published |
+| `tomorrow_available` | `true` once tomorrow's fixed (`actual`) prices are published |
 | `forecast` | Entries for days after tomorrow, if the API provides them; each has a `preview` flag that is `true` for estimates |
 | `resolution` | Entry length, taken from the response or inferred from the first entry (e.g. `PT1H`) |
 | `component_id` | UUID of the underlying price component |
